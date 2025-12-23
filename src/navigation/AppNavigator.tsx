@@ -31,7 +31,7 @@ export type RootStackParamList = {
   CoachHome: undefined;
   ProfileEdit: undefined;
   CreateClub: undefined;
-  EditClub: { club: any };
+  EditClub: { clubId: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();

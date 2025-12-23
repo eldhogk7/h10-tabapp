@@ -10,13 +10,17 @@ import { Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { deleteClub } from '../../api/clubs';
+import { useRoute } from '@react-navigation/native';
 
 type NavProp = NativeStackNavigationProp<RootStackParamList>;
 
 const ClubsList = () => {
+  const route = useRoute<any>();
   const [clubs, setClubs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigation = useNavigation<NavProp>();
+
+  const hasClubs = clubs.length > 0;
 
   useFocusEffect(
     React.useCallback(() => {
@@ -77,76 +81,100 @@ const ClubsList = () => {
     );
   }
 
-  if (clubs.length === 0) {
-    return (
-      <View style={styles.center}>
-        <Text>No clubs found</Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>Clubs</Text>
 
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => navigation.navigate('CreateClub')}
-        >
-          <Text style={styles.createButtonText}>+ Create Club</Text>
-        </TouchableOpacity>
+        {hasClubs && (
+            <TouchableOpacity
+              style={styles.createButton}
+              onPress={() => navigation.navigate('CreateClub')}
+            >
+              <Text style={styles.createButtonText}>+ Create Club</Text>
+            </TouchableOpacity>
+        )}
       </View>
+      {/* EMPTY STATE */}
+      {!hasClubs ? (
+        <View style={styles.center}>
+          <Text style={{ fontSize: 16, marginBottom: 12 }}>
+            No clubs found
+          </Text>
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={() => navigation.navigate('CreateClub')}
+          >
+            <Text style={styles.createButtonText}>Create your first club</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={clubs}
+          keyExtractor={item => item.club_id}
+          renderItem={({ item }) => {
+            const isActive = item.status === 'active';
+            return (
+              <View style={styles.card}>
+                {/* CLUB DETAILS */}
+                <Text style={styles.name}>{item.club_name}</Text>
+                <Text style={styles.label}>Address: {item.address}</Text>
+                <Text style={styles.label}>Sport: {item.sport || 'N/A'}</Text>
 
-      <FlatList
-        data={clubs}
-        keyExtractor={item => item.club_id}
-        renderItem={({ item }) => (
-            <View style={styles.card}>
-              {/* CLUB DETAILS */}
-              <Text style={styles.name}>{item.club_name}</Text>
-              <Text style={styles.label}>Address: {item.address}</Text>
-              <Text style={styles.label}>Sport: {item.sport || 'N/A'}</Text>
+                {/* DIVIDER */}
+                <View style={styles.divider} />
 
-              {/* DIVIDER */}
-              <View style={styles.divider} />
+                {/* POD HOLDERS */}
+                <Text style={styles.subTitle}>Pod Holders</Text>
 
-              {/* ADMIN DETAILS */}
-              {item.admin ? (
-                <>
-                  <Text style={styles.subTitle}>Club Admin</Text>
-                  <Text>Name: {item.admin.name}</Text>
-                  <Text>Email: {item.admin.email}</Text>
-                  <Text>Phone: {item.admin.phone || 'N/A'}</Text>
-                </>
-              ) : (
-                <Text style={styles.noAdmin}>No admin assigned</Text>
-              )}
-              {/* 🔽 ACTION BUTTONS GO HERE */}
-              <View style={styles.actions}>
-                <TouchableOpacity
-                  style={styles.iconBtn}
-                  onPress={() => navigation.navigate('EditClub', { club: item })}
-                >
-                  <Ionicons name="create-outline" size={22} color="#2563EB" />
-                </TouchableOpacity>
+                {item.pod_holders?.length > 0 ? (
+                  item.pod_holders.map((p: any) => (
+                    <Text key={p.pod_holder_id} style={styles.label}>
+                      • {p.serial_number}
+                    </Text>
+                  ))
+                ) : (
+                  <Text style={styles.noAdmin}>No pod holders assigned</Text>
+                )}
 
-                <TouchableOpacity
-                  style={styles.iconBtn}
-                  onPress={() =>
-                    handleDelete(item.club_id, item.club_name)
-                  }
-                >
-                  <Ionicons name="trash-outline" size={22} color="#DC2626" />
-                </TouchableOpacity>
+                {/* ADMIN DETAILS */}
+                <View style={styles.divider} />
+
+                {item.admin ? (
+                  <>
+                    <Text style={styles.subTitle}>Club Admin</Text>
+                    <Text>Name: {item.admin.name}</Text>
+                    <Text>Email: {item.admin.email}</Text>
+                    <Text>Phone: {item.admin.phone || 'N/A'}</Text>
+                  </>
+                ) : (
+                  <Text style={styles.noAdmin}>No admin assigned</Text>
+                )}
+
+                {/* ACTIONS */}
+                <View style={styles.actions}>
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => navigation.navigate('EditClub', { clubId: item.club_id })}
+                  >
+                    <Ionicons name="create-outline" size={22} color="#2563EB" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.iconBtn}
+                    onPress={() => handleDelete(item.club_id, item.club_name)}
+                  >
+                    <Ionicons name="trash-outline" size={22} color="#DC2626" />
+                  </TouchableOpacity>
+                </View>
               </View>
-              </View>
-          )}
-      />
+            );
+          }}
+        />
+      )}
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   title: { fontSize: 22, fontWeight: '700', marginBottom: 16 },

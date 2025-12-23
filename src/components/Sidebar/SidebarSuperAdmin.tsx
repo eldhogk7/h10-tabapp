@@ -23,7 +23,6 @@ const MENU_ITEMS = [
   'Dashboard',
   'CreateCoach',
   'Clubs',
-  'ClubAdmins',
 ];
 
 export type ScreenType = typeof MENU_ITEMS[number];

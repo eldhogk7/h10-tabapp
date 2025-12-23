@@ -15,7 +15,6 @@ import Dashboard from './Dashboard';
 import CreateClub from './CreateClub';
 import CreateCoach from './CreateCoach';
 import ClubsList from './ClubsList';
-import ClubAdminsList from './ClubAdminsList';
 import { ScreenType } from '../../components/Sidebar/SidebarSuperAdmin';
 
 
@@ -40,8 +39,6 @@ const SuperAdminHome = () => {
         return <CreateCoach />;
       case 'Clubs':
         return <ClubsList />;
-      case 'ClubAdmins':
-        return <ClubAdminsList />;
       default:
         return <Dashboard />;
     }
