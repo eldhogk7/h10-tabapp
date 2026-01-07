@@ -11,85 +11,171 @@ import {
   Alert,
 } from 'react-native';
 import { launchImageLibrary } from 'react-native-image-picker';
-import { fetchProfile, updateSuperAdminProfile, uploadSuperAdminImage } from '../../api/auth';
+import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+
+import {
+  fetchProfile,
+  updateSuperAdminProfile,
+  uploadSuperAdminImage,
+  updateClubAdminProfile,
+  uploadClubAdminImage,
+} from '../../api/auth';
 import { API_BASE_URL } from '../../utils/constants';
+
+/* ================= TYPES ================= */
+
 type PickedImage = {
   uri: string;
   name: string;
   type: string;
 };
+
+type Role = 'SUPER_ADMIN' | 'CLUB_ADMIN';
+
+/* ================= CONSTANTS ================= */
+
+const PROFILE_CACHE_KEY = 'CACHED_PROFILE';
+
+/* ================= COMPONENT ================= */
+
 const ProfileEditScreen = () => {
-  const [superAdminId, setSuperAdminId] = useState<string | null>(null);
+  const navigation = useNavigation<any>();
+
+  const [role, setRole] = useState<Role | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
 
   const [photo, setPhoto] = useState<PickedImage | null>(null);
-  const [photoUri, setPhotoUri] = useState<string | null>(null); 
+  const [photoUri, setPhotoUri] = useState<string | null>(null);
 
-  const navigation = useNavigation();
+  /* ================= HELPERS ================= */
 
-  // 👉 Load current profile on mount
+  const hydrateProfile = (profile: any) => {
+    if (!profile) return;
+
+    setRole(profile.role);
+
+    if (profile.role === 'SUPER_ADMIN') {
+      setUserId(profile.super_admin_id);
+    } else {
+      setUserId(profile.admin_id);
+    }
+
+    setName(profile.name ?? '');
+    setEmail(profile.email ?? '');
+    setPhone(profile.phone ?? '');
+
+    if (profile.profile_image) {
+      setPhotoUri(`${API_BASE_URL}/uploads/${profile.profile_image}`);
+    }
+  };
+
+  const loadCachedProfile = async () => {
+    try {
+      const raw = await AsyncStorage.getItem(PROFILE_CACHE_KEY);
+      if (raw) {
+        hydrateProfile(JSON.parse(raw));
+      }
+    } catch (e) {
+      console.log('❌ Failed to load cached profile', e);
+    }
+  };
+
+  const saveProfileToCache = async (profile: any) => {
+    try {
+      await AsyncStorage.setItem(
+        PROFILE_CACHE_KEY,
+        JSON.stringify(profile),
+      );
+    } catch (e) {
+      console.log('❌ Failed to save profile cache', e);
+    }
+  };
+
+  /* ================= LOAD PROFILE ================= */
+
   useEffect(() => {
+    let active = true;
+
     (async () => {
+      // 1️⃣ Load cached profile first (OFFLINE SUPPORT)
+      await loadCachedProfile();
+
+      // 2️⃣ Check internet
+      const net = await NetInfo.fetch();
+      if (!net.isConnected) return;
+
+      // 3️⃣ Fetch latest from server
       try {
-        const user = await fetchProfile();
-        // adjust these keys if your backend returns different names
-        setSuperAdminId(user.super_admin_id);
-        setName(user.name ?? '');
-        setEmail(user.email ?? '');
-        setPhone(user.phone ?? '');
-        setPhoto(user.profile_image ?? '');
-        if (user.profile_image) {
-          // assuming backend serves files from /uploads/<filename>
-          setPhotoUri(`${API_BASE_URL}/uploads/${user.profile_image}`);
-        }
+        const profile = await fetchProfile();
+        if (!active || !profile) return;
+
+        hydrateProfile(profile);
+        await saveProfileToCache(profile);
       } catch (err) {
         console.log('PROFILE LOAD ERROR', err);
-        Alert.alert('Error', 'Failed to load profile');
       }
     })();
+
+    return () => {
+      active = false;
+    };
   }, []);
+
+  /* ================= IMAGE PICKER ================= */
+
   const handleChoosePhoto = () => {
-  launchImageLibrary(
+    launchImageLibrary(
       { mediaType: 'photo', quality: 0.8 },
-      (response) => {
-      if (response.didCancel || response.errorCode) return;
+      response => {
+        if (response.didCancel || response.errorCode) return;
 
-      const asset = response.assets?.[0];
-      if (!asset?.uri) return;
+        const asset = response.assets?.[0];
+        if (!asset?.uri) return;
 
-      const image = {
+        setPhoto({
           uri: asset.uri,
           name: asset.fileName ?? `profile_${Date.now()}.jpg`,
           type: asset.type ?? 'image/jpeg',
-      };
+        });
 
-      setPhoto(image);        // ✅ REQUIRED
-      setPhotoUri(asset.uri); // for preview
-      }
-  );
+        setPhotoUri(asset.uri);
+      },
+    );
   };
 
+  /* ================= SAVE PROFILE ================= */
+
   const handleSave = async () => {
-    if (!superAdminId) {
-      Alert.alert('Error', 'User ID not found.');
+    const net = await NetInfo.fetch();
+
+    if (!net.isConnected) {
+      Alert.alert(
+        'Offline',
+        'You are offline. Profile updates require internet.',
+      );
+      return;
+    }
+
+    if (!userId || !role) {
+      Alert.alert('Error', 'User not found. Please re-login.');
       return;
     }
 
     try {
-      // 1️⃣ Update basic info
-      await updateSuperAdminProfile(superAdminId, {
-        name,
-        email,
-        phone,
-      });
+      if (role === 'SUPER_ADMIN') {
+        await updateSuperAdminProfile(userId, { name, email, phone });
+        if (photo) await uploadSuperAdminImage(userId, photo);
+      }
 
-      // 2️⃣ If user picked a new photo in this screen → upload it
-      if (photo) {
-        await uploadSuperAdminImage(superAdminId, photo);
+      if (role === 'CLUB_ADMIN') {
+        await updateClubAdminProfile(userId, { name, email, phone });
+        if (photo) await uploadClubAdminImage(userId, photo);
       }
 
       Alert.alert('Success', 'Profile updated successfully', [
@@ -104,9 +190,11 @@ const ProfileEditScreen = () => {
     }
   };
 
+  /* ================= UI ================= */
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* Profile Picture */}
+      {/* 👤 PROFILE IMAGE */}
       <View style={styles.photoContainer}>
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.photo} />
@@ -115,28 +203,23 @@ const ProfileEditScreen = () => {
             <Text style={styles.photoPlaceholderText}>Add Photo</Text>
           </View>
         )}
+
         <TouchableOpacity style={styles.photoButton} onPress={handleChoosePhoto}>
           <Text style={styles.photoButtonText}>Change Picture</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Name */}
+      {/* NAME */}
       <View style={styles.fieldContainer}>
         <Text style={styles.label}>Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your name"
-          value={name}
-          onChangeText={setName}
-        />
+        <TextInput style={styles.input} value={name} onChangeText={setName} />
       </View>
 
-      {/* Email */}
+      {/* EMAIL */}
       <View style={styles.fieldContainer}>
         <Text style={styles.label}>Email</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your email"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -144,25 +227,26 @@ const ProfileEditScreen = () => {
         />
       </View>
 
-      {/* Phone */}
+      {/* PHONE */}
       <View style={styles.fieldContainer}>
         <Text style={styles.label}>Phone Number</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter your phone number"
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
         />
       </View>
 
-      {/* Save Button */}
+      {/* SAVE */}
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Save</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 };
+
+/* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
   container: {
@@ -171,24 +255,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: '#f5f5f5',
   },
-  photoContainer: {
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  photo: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
-    backgroundColor: '#ddd',
-  },
-  photoPlaceholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  photoPlaceholderText: {
-    color: '#666',
-    fontSize: 12,
-  },
+  photoContainer: { alignItems: 'center', marginBottom: 30 },
+  photo: { width: 110, height: 110, borderRadius: 55 },
+  photoPlaceholder: { justifyContent: 'center', alignItems: 'center' },
+  photoPlaceholderText: { color: '#666', fontSize: 12 },
   photoButton: {
     marginTop: 10,
     paddingHorizontal: 16,
@@ -197,18 +267,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#007AFF',
   },
-  photoButtonText: {
-    color: '#007AFF',
-    fontWeight: '500',
-  },
-  fieldContainer: {
-    marginBottom: 18,
-  },
-  label: {
-    fontSize: 14,
-    color: '#555',
-    marginBottom: 6,
-  },
+  photoButtonText: { color: '#007AFF', fontWeight: '500' },
+  fieldContainer: { marginBottom: 18 },
+  label: { fontSize: 14, color: '#555', marginBottom: 6 },
   input: {
     backgroundColor: '#fff',
     borderRadius: 8,
@@ -216,7 +277,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#ddd',
-    fontSize: 15,
   },
   saveButton: {
     marginTop: 30,
@@ -225,11 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
   },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });
 
 export default ProfileEditScreen;

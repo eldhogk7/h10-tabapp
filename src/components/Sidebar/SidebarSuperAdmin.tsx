@@ -20,8 +20,8 @@ const DRAWER_WIDTH = 260;
 const HEADER_HEIGHT = 56; // ✅ EXACT MATCH WITH NAVBAR
 
 const MENU_ITEMS = [
-  'Dashboard',
-  'CreateCoach',
+//   'Dashboard',
+//   'CreateCoach',
   'Clubs',
 ];
 

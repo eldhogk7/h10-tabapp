@@ -40,23 +40,61 @@ const SidebarClubAdmin = ({ active, setActive, closeSidebar }: any) => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={[styles.item, getItemStyle('Home')]} onPress={() => setActive('Home')}>
-        <Text style={[styles.itemText, getTextStyle('Home')]}>Dashboard</Text>
-      </TouchableOpacity>
+     {/*} <TouchableOpacity style={[styles.item, getItemStyle('HomeScreen')]} onPress={() => {setActive('HomeScreen'); navigation.navigate('HomeScreen'); closeSidebar();}}>
+        <Text style={[styles.itemText, getTextStyle('HomeScreen')]}>Dashboard</Text>
+      </TouchableOpacity>*/}
 
-      <TouchableOpacity style={[styles.item, getItemStyle('CreateCoach')]} onPress={() => setActive('CreateCoach')}>
+      {/*<TouchableOpacity style={[styles.item, getItemStyle('CreateCoach')]} onPress={() => setActive('CreateCoach')}>
         <Text style={[styles.itemText, getTextStyle('CreateCoach')]}>Create Coach</Text>
       </TouchableOpacity>
 
       <TouchableOpacity style={[styles.item, getItemStyle('MyClubCoaches')]} onPress={() => setActive('MyClubCoaches')}>
         <Text style={[styles.itemText, getTextStyle('MyClubCoaches')]}>My Club Coaches</Text>
+      </TouchableOpacity>*/}
+      <TouchableOpacity
+        style={[styles.item, getItemStyle('Import')]}
+        onPress={() => {
+          setActive('Import');
+          navigation.navigate('ImportFromESP32');
+          closeSidebar();
+        }}
+      >
+        <Text style={[styles.itemText, getTextStyle('Import')]}>
+          Import Data
+        </Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.item, getItemStyle('Performance')]}
+        onPress={() => {
+          setActive('Performance');
+          navigation.navigate('Performance');
+          closeSidebar();
+        }}
+      >
+        <Text style={[styles.itemText, getTextStyle('Performance')]}>
+          Performance
+        </Text>
+      </TouchableOpacity>
+     {/* <TouchableOpacity
+        style={[styles.item, getItemStyle('Compare')]}
+        onPress={() => {
+          setActive('Compare');
+          navigation.navigate('Compare');
+          closeSidebar();
+        }}
+      >
+        <Text style={[styles.itemText, getTextStyle('Compare')]}>
+          Compare Matches
+        </Text>
+      </TouchableOpacity>*/}
+
+
 
       <View style={{ flex: 1 }} />
 
-      <TouchableOpacity style={styles.logout} onPress={handleLogout}>
+     {/* <TouchableOpacity style={styles.logout} onPress={handleLogout}>
         <Text style={[styles.logoutText, { color: isDark ? '#F87171' : '#DC2626' }]}>Logout</Text>
-      </TouchableOpacity>
+      </TouchableOpacity>*/}
     </View>
   );
 };
