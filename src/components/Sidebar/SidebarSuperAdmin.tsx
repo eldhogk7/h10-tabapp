@@ -7,25 +7,26 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const EXPANDED_WIDTH = 220;   // ✅ tablet width
+const EXPANDED_WIDTH = 220;
 const COLLAPSED_WIDTH = 64;
 
 /* ================= MENU CONFIG ================= */
 
 const MENU_ITEMS = [
-  // 🔥 POD MANAGEMENT FIRST
-
-
   {
     key: 'Dashboard',
     label: 'Dashboard',
     icon: 'grid-outline',
   },
-
   {
-    key: 'Clubs',
-    label: 'Clubs',
+    key: 'ClubManagement', // ✅ FIXED
+    label: 'Club Management',
     icon: 'business-outline',
+  },
+  {
+    key: 'PodholderManagement',
+    label: 'Podholder Management',
+    icon: 'people-outline',
   },
   {
     key: 'PodManagement',
@@ -37,7 +38,9 @@ const MENU_ITEMS = [
     label: 'Create Coach',
     icon: 'person-add-outline',
   },
-];
+] as const;
+
+/* ================= TYPES ================= */
 
 export type ScreenType = typeof MENU_ITEMS[number]['key'];
 
@@ -47,6 +50,8 @@ interface Props {
   collapsed: boolean;
   toggleSidebar: () => void;
 }
+
+/* ================= COMPONENT ================= */
 
 const SidebarSuperAdmin: React.FC<Props> = ({
   active,
@@ -92,7 +97,7 @@ const SidebarSuperAdmin: React.FC<Props> = ({
             onPress={() => setActive(item.key)}
           >
             <Ionicons
-              name={item.icon as any}
+              name={item.icon}
               size={20}
               color={isActive ? '#FFFFFF' : '#9CA3AF'}
             />
@@ -108,6 +113,8 @@ const SidebarSuperAdmin: React.FC<Props> = ({
     </View>
   );
 };
+
+export default SidebarSuperAdmin;
 
 /* ================= STYLES ================= */
 
@@ -166,5 +173,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-export default SidebarSuperAdmin;

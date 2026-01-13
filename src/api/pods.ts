@@ -1,6 +1,10 @@
+import api from './axios';
 import { API_BASE_URL } from '../utils/constants';
 
-/* ================= GET ALL PODS ================= */
+/* =====================================================
+   GET ALL PODS
+   ===================================================== */
+
 export async function fetchPods(): Promise<any[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/pods`);
@@ -12,19 +16,12 @@ export async function fetchPods(): Promise<any[]> {
 
     const json = await res.json();
 
-    /**
-     * ✅ NORMALIZE ALL POSSIBLE SHAPES
-     * 1️⃣ { data: Pod[] }
-     * 2️⃣ { data: { data: Pod[] } }
-     * 3️⃣ anything else → []
-     */
-
-    // Case 1
+    // Case 1: { data: Pod[] }
     if (Array.isArray(json?.data)) {
       return json.data;
     }
 
-    // Case 2 (THIS IS YOUR CURRENT BACKEND)
+    // Case 2: { data: { data: Pod[] } }
     if (Array.isArray(json?.data?.data)) {
       return json.data.data;
     }
@@ -37,8 +34,46 @@ export async function fetchPods(): Promise<any[]> {
   }
 }
 
+/* =====================================================
+   GET AVAILABLE PODS (FOR POD HOLDER REGISTER)
+   ===================================================== */
 
-/* ================= CREATE PODS BATCH ================= */
+export const getAvailablePods = async (): Promise<any[]> => {
+  try {
+    const res = await api.get('/pod-holders/available');
+
+    // Backend response: { data: Pod[] }
+    if (Array.isArray(res.data?.data)) {
+      return res.data.data;
+    }
+
+    console.warn(
+      '⚠ getAvailablePods: unexpected payload shape',
+      res.data,
+    );
+    return [];
+  } catch (err) {
+    console.error('❌ getAvailablePods failed:', err);
+    return [];
+  }
+};
+
+/* =====================================================
+   CREATE POD HOLDER
+   ===================================================== */
+
+export const createPodHolder = async (payload: {
+  model: string;
+  podIds: string[];
+}) => {
+  const res = await api.post('/pod-holders', payload);
+  return res.data;
+};
+
+/* =====================================================
+   CREATE PODS BATCH
+   ===================================================== */
+
 export async function createPodsBatch(
   count: number,
   model?: string,
@@ -50,14 +85,18 @@ export async function createPodsBatch(
       body: JSON.stringify({ count, model }),
     });
 
+    if (!res.ok) {
+      console.error('❌ createPodsBatch HTTP error:', res.status);
+      return null;
+    }
+
     const json = await res.json();
 
-    if (!json || !json.data) {
+    if (!json?.data) {
       console.error('❌ createPodsBatch: missing data', json);
       return null;
     }
 
-    // ✅ This payload is correct — no warning needed
     return json.data;
   } catch (err) {
     console.error('❌ createPodsBatch failed:', err);
@@ -65,22 +104,29 @@ export async function createPodsBatch(
   }
 }
 
+/* =====================================================
+   UPDATE POD STATUS
+   ===================================================== */
+
 export async function updatePodStatus(
   podId: string,
-  status: 'ACTIVE' | 'MAINTENANCE' | 'DAMAGED' | 'LOST',
+  status:
+    | 'ACTIVE'
+    | 'MAINTENANCE'
+    | 'DAMAGED'
+    | 'LOST'
+    | 'REPAIRED',
 ) {
-  const res = await fetch(
-    `${API_BASE_URL}/pods/${podId}/status`,
-    {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status }),
-    },
-  );
+  const res = await fetch(`${API_BASE_URL}/pods/${podId}/status`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
 
   if (!res.ok) {
-    throw new Error('Failed to update status');
+    throw new Error('Failed to update pod status');
   }
 
   return res.json();
 }
+

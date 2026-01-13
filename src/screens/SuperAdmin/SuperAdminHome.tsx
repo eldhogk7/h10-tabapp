@@ -3,78 +3,123 @@ import {
   View,
   StyleSheet,
   StatusBar,
-  Platform,
 } from 'react-native';
-
-import SidebarSuperAdmin from '../../components/Sidebar/SidebarSuperAdmin';
+import { SafeAreaView } from 'react-native-safe-area-context'
+import SidebarSuperAdmin, {
+  ScreenType,
+} from '../../components/Sidebar/SidebarSuperAdmin';
 import SuperAdminNavbar from '../../components/Navbar/SuperAdminNavbar';
 
 /* ===== SCREENS ===== */
 import Dashboard from './Dashboard';
 import CreateCoach from './CreateCoach';
-import ClubsList from './ClubsList';
+import CreateClub from './CreateClub';
+import ClubManagementScreen from './ClubManagementScreen';
 import PodManagementScreen from './PodManagementScreen';
-
-import { ScreenType } from '../../components/Sidebar/SidebarSuperAdmin';
+import PodholderManagementScreen from './PodholderManagementScreen';
+import SettingsScreen from './SettingsScreen';
+import ProfileEditScreen from './ProfileEditScreen';
 
 /* ===== CONSTANTS ===== */
-const NAVBAR_HEIGHT = 56;
-const STATUS_BAR_HEIGHT =
-  Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0;
 
 const SuperAdminHome = () => {
-  /* 🔥 DEFAULT SCREEN = POD MANAGEMENT */
   const [activeScreen, setActiveScreen] =
-    useState<ScreenType>('PodManagement');
+    useState<ScreenType>('Dashboard');
 
   const [collapsed, setCollapsed] = useState(false);
 
-  /* ===== SCREEN RENDERER ===== */
+
+  const [profileRefreshKey, setProfileRefreshKey] = useState(0);
+
+  /* ===== RENDER SCREEN ===== */
   const renderScreen = () => {
     switch (activeScreen) {
+      case 'Dashboard':
+        return <Dashboard />;
+
+      case 'ClubManagement':
+        return (
+          <ClubManagementScreen
+            openCreateClub={() => setActiveScreen('CreateClub')}
+          />
+        );
+
+      case 'CreateClub':
+        return (
+          <CreateClub
+            goBack={() => setActiveScreen('ClubManagement')}
+          />
+        );
+
+      case 'PodholderManagement':
+        return <PodholderManagementScreen />;
+
       case 'PodManagement':
         return <PodManagementScreen />;
 
       case 'CreateCoach':
         return <CreateCoach />;
 
-      case 'Clubs':
-        return <ClubsList />;
+      case 'Settings':
+        return (
+          <SettingsScreen
+            goBack={() => setActiveScreen('Dashboard')}
+          />
+        );
 
-      case 'Dashboard':
+      case 'ProfileEdit':
+        return (
+          <ProfileEditScreen
+            goBack={() => setActiveScreen('Dashboard')}
+            onProfileUpdated={() =>
+              setProfileRefreshKey(v => v + 1) // ✅ TRIGGER NAVBAR REFRESH
+            }
+          />
+        );
+
       default:
         return <Dashboard />;
     }
   };
 
   return (
-    <View style={styles.root}>
-      {/* STATUS BAR */}
-      <StatusBar translucent backgroundColor="transparent" />
-
-      {/* NAVBAR */}
-      <View style={styles.navbarWrapper}>
-        <SuperAdminNavbar />
-      </View>
-
-      {/* BODY */}
-      <View style={styles.body}>
-        {/* SIDEBAR */}
-        <View style={styles.sidebarWrapper}>
-          <SidebarSuperAdmin
-            active={activeScreen}
-            setActive={setActiveScreen}
-            collapsed={collapsed}
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.root}>
+        {/* ===== NAVBAR ===== */}
+        <View style={styles.navbarWrapper}>
+          <SuperAdminNavbar
+            key={profileRefreshKey}          // 🔥 FORCE REMOUNT
             toggleSidebar={() => setCollapsed(v => !v)}
+               onNavigate={setActiveScreen}
+            profileRefreshKey={profileRefreshKey}
           />
+
         </View>
 
-        {/* CONTENT */}
-        <View style={styles.content}>
-          {renderScreen()}
+        {/* ===== BODY ===== */}
+        <View style={styles.body}>
+          {/* ===== SIDEBAR ===== */}
+          <View
+            style={[
+              styles.sidebarWrapper,
+              collapsed && styles.sidebarCollapsed,
+            ]}
+          >
+            <SidebarSuperAdmin
+              active={activeScreen}
+              setActive={setActiveScreen}
+              collapsed={collapsed}
+              toggleSidebar={() => setCollapsed(v => !v)}
+            />
+          </View>
+
+          {/* ===== CONTENT ===== */}
+          <View style={styles.content}>
+            {renderScreen()}
+          </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -82,28 +127,40 @@ export default SuperAdminHome;
 
 /* ===== STYLES ===== */
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: '#2F343B',
+  },
+
   root: {
     flex: 1,
     backgroundColor: '#F1F5F9',
   },
 
   navbarWrapper: {
-    height: NAVBAR_HEIGHT + STATUS_BAR_HEIGHT,
-    zIndex: 100,
+    height: 56,
+    zIndex: 10,
   },
+
 
   body: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
   },
 
   sidebarWrapper: {
-    backgroundColor: '#000000',
+    width: 240,
+    backgroundColor: '#0F172A',
+  },
+
+  sidebarCollapsed: {
+    width: 72,
   },
 
   content: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
+    paddingBottom: 0,
   },
+
 });
