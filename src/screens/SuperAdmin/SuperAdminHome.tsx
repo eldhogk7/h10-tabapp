@@ -1,41 +1,39 @@
 import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  StatusBar,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
 import SidebarSuperAdmin, {
   ScreenType,
 } from '../../components/Sidebar/SidebarSuperAdmin';
 import SuperAdminNavbar from '../../components/Navbar/SuperAdminNavbar';
 
 /* ===== SCREENS ===== */
-import Dashboard from './Dashboard';
-import CreateCoach from './CreateCoach';
 import CreateClub from './CreateClub';
 import ClubManagementScreen from './ClubManagementScreen';
 import PodManagementScreen from './PodManagementScreen';
 import PodholderManagementScreen from './PodholderManagementScreen';
 import SettingsScreen from './SettingsScreen';
 import ProfileEditScreen from './ProfileEditScreen';
-
-/* ===== CONSTANTS ===== */
+import DashboardScreen from './DashboardScreen';
+import PaymentScreen from './PaymentScreen';
+import SupportTicketsScreen from './SupportTicketsScreen';
 
 const SuperAdminHome = () => {
   const [activeScreen, setActiveScreen] =
     useState<ScreenType>('Dashboard');
 
   const [collapsed, setCollapsed] = useState(false);
-
-
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
   /* ===== RENDER SCREEN ===== */
   const renderScreen = () => {
     switch (activeScreen) {
       case 'Dashboard':
-        return <Dashboard />;
+        return (
+          <DashboardScreen
+            onNavigate={setActiveScreen}
+          />
+        );
 
       case 'ClubManagement':
         return (
@@ -57,8 +55,11 @@ const SuperAdminHome = () => {
       case 'PodManagement':
         return <PodManagementScreen />;
 
-      case 'CreateCoach':
-        return <CreateCoach />;
+      case 'Payment':
+        return <PaymentScreen />;
+
+      case 'SupportTickets':
+        return <SupportTicketsScreen />;
 
       case 'Settings':
         return (
@@ -72,13 +73,17 @@ const SuperAdminHome = () => {
           <ProfileEditScreen
             goBack={() => setActiveScreen('Dashboard')}
             onProfileUpdated={() =>
-              setProfileRefreshKey(v => v + 1) // ✅ TRIGGER NAVBAR REFRESH
+              setProfileRefreshKey(v => v + 1)
             }
           />
         );
 
       default:
-        return <Dashboard />;
+        return (
+          <DashboardScreen
+            onNavigate={setActiveScreen}
+          />
+        );
     }
   };
 
@@ -88,30 +93,22 @@ const SuperAdminHome = () => {
         {/* ===== NAVBAR ===== */}
         <View style={styles.navbarWrapper}>
           <SuperAdminNavbar
-            key={profileRefreshKey}          // 🔥 FORCE REMOUNT
+            key={profileRefreshKey}
             toggleSidebar={() => setCollapsed(v => !v)}
-               onNavigate={setActiveScreen}
+            onNavigate={setActiveScreen}
             profileRefreshKey={profileRefreshKey}
           />
-
         </View>
 
         {/* ===== BODY ===== */}
         <View style={styles.body}>
           {/* ===== SIDEBAR ===== */}
-          <View
-            style={[
-              styles.sidebarWrapper,
-              collapsed && styles.sidebarCollapsed,
-            ]}
-          >
-            <SidebarSuperAdmin
-              active={activeScreen}
-              setActive={setActiveScreen}
-              collapsed={collapsed}
-              toggleSidebar={() => setCollapsed(v => !v)}
-            />
-          </View>
+          <SidebarSuperAdmin
+            active={activeScreen}
+            setActive={setActiveScreen}
+            collapsed={collapsed}
+            toggleSidebar={() => setCollapsed(v => !v)}
+          />
 
           {/* ===== CONTENT ===== */}
           <View style={styles.content}>
@@ -142,25 +139,13 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
 
-
   body: {
     flex: 1,
     flexDirection: 'row',
   },
 
-  sidebarWrapper: {
-    width: 240,
-    backgroundColor: '#0F172A',
-  },
-
-  sidebarCollapsed: {
-    width: 72,
-  },
-
   content: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    paddingBottom: 0,
   },
-
 });

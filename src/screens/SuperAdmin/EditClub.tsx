@@ -1,4 +1,3 @@
-// src/screens/SuperAdmin/EditClub.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -37,7 +36,7 @@ const EditClub = () => {
   const [podHolders, setPodHolders] = useState<any[]>([]);
   const [selectedPodHolders, setSelectedPodHolders] = useState<string[]>([]);
 
-  // 🔴 FIXED: single correct state name
+
   const [showPodDropdown, setShowPodDropdown] = useState(false);
 
   const [availablePodHolders, setAvailablePodHolders] = useState<any[]>([]);
@@ -49,7 +48,7 @@ const EditClub = () => {
     loadAvailablePodHolders();
   }, []);
 
-  /* 🔴 ADD THIS EXACTLY HERE — BELOW THE FIRST useEffect */
+
   useEffect(() => {
     if (!club) return;
 
@@ -62,7 +61,7 @@ const EditClub = () => {
   }, [club, podHolders]);
 
 
-  // ✅ ADDED: fetch fresh club from backend
+
   const loadClub = async () => {
     try {
       const res = await api.get(`/clubs/${clubId}`);
@@ -70,7 +69,7 @@ const EditClub = () => {
       console.log('🔍 CLUB FROM BACKEND:', res.data);
       setClub(clubData);
 
-      // ✅ ADDED: populate states AFTER fetch
+
       setClubName(clubData.club_name);
       setAddress(clubData.address);
       setSport(clubData.sport);
@@ -141,7 +140,7 @@ const EditClub = () => {
     }
   };
 
-  // ✅ ADDED: loading guard
+
   if (loading || !club) {
     return (
       <View style={styles.center}>
@@ -214,7 +213,7 @@ const EditClub = () => {
                               `/pod-holders/${p.pod_holder_id}/unassign`
                             );
 
-                            // ✅ REFRESH BOTH STATES
+
                             await loadClub();
                             await loadAvailablePodHolders();
                           } catch {

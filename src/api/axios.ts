@@ -34,7 +34,7 @@ api.interceptors.response.use(
         STORAGE_KEYS.ROLE,
         STORAGE_KEYS.USER_NAME,
       ]);
-      console.log('🔒 Token expired – user logged out');
+      console.log(' Token expired – user logged out');
     }
     return Promise.reject(err);
   },

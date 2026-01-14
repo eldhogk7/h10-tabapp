@@ -1,4 +1,3 @@
-// src/screens/Auth/RegisterScreen.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -192,13 +191,13 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center", // ⭐ centers the card
+    alignItems: "center",
     paddingHorizontal: 24,
   },
 
   card: {
     width: "100%",
-    maxWidth: 420, // ⭐ perfect fixed box width like Login page
+    maxWidth: 420,
     backgroundColor: "rgba(255,255,255,0.08)",
     padding: 26,
     borderRadius: 14,

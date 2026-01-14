@@ -52,7 +52,7 @@ const CreateClub = ({ goBack }: Props) => {
     try {
       const res = await api.get('/pod-holders/unassigned');
 
-      // ✅ NORMALIZE RESPONSE (CRITICAL FIX)
+
       const list = Array.isArray(res.data)
         ? res.data
         : Array.isArray(res.data?.data)

@@ -1,8 +1,7 @@
-// src/api/coaches.ts
 import api from './axios';
 
 export const fetchMyClubCoaches = async () => {
-  const res = await api.get('/coaches/my-club'); // You already added this backend
+  const res = await api.get('/coaches/my-club');
   return res.data?.data || res.data;
 };
 

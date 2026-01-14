@@ -118,7 +118,7 @@ const ProfileEditScreen = ({ goBack }: Props) => {
           {
             text: 'OK',
             onPress: () => {
-              // ⏳ tiny delay to allow state propagation
+
               setTimeout(goBack, 150);
             },
           },

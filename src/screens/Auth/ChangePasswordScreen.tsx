@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
    borderRadius: 18,
    padding: 24,
    width: '100%',
-       // ✅ keep this
+
  },
 
 
@@ -247,13 +247,13 @@ const styles = StyleSheet.create({
   },
 
  input: {
-   minHeight: 44,          // 🔽 reduced height (was 56)
+   minHeight: 44,
    borderWidth: 1,
    borderColor: '#CBD5E1',
-   borderRadius: 10,       // 🔽 slightly tighter radius
+   borderRadius: 10,
    paddingHorizontal: 14,
-   paddingVertical: 10,    // 🔽 controls inner height
-   fontSize: 15,           // 🔽 slightly smaller text
+   paddingVertical: 10,
+   fontSize: 15,
    marginBottom: 16,
  },
 
@@ -275,7 +275,7 @@ const styles = StyleSheet.create({
     updateBtnSmall: {
       flexDirection: 'row',
       alignItems: 'center',
-      alignSelf: 'flex-start',   // 👈 LEFT aligned
+      alignSelf: 'flex-start',
       backgroundColor: '#3b82f6',
       paddingVertical: 10,
       paddingHorizontal: 18,

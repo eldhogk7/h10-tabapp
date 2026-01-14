@@ -189,7 +189,7 @@ const PodholderManagementScreen = () => {
         const res = await api.get('/clubs');
 
         const normalized: Club[] = (res.data?.data ?? []).map((c: any) => ({
-          club_id: c.id,          // 🔥 FIX HERE
+          club_id: c.id,
           club_name: c.club_name,
         }));
 
@@ -202,16 +202,16 @@ const PodholderManagementScreen = () => {
 
 
 
-    // ✅ AVAILABLE PODS (FOR REGISTER MODAL)
+
     const loadAvailablePods = async () => {
       try {
         const pods = await getAvailablePods();
 
-        // ✅ DO NOT CHANGE lifecycle_status
+
         const normalized = pods.map((p: any) => ({
           pod_id: p.pod_id,
           serial_number: p.serial_number,
-          lifecycle_status: p.lifecycle_status, // ✅ FIX
+          lifecycle_status: p.lifecycle_status,
         }));
 
         setAvailablePods(normalized);
@@ -317,6 +317,26 @@ const PodholderManagementScreen = () => {
     return matchesSearch && matchesStatus;
   });
 
+  /* ---------- PAGINATION ---------- */
+
+  const ITEMS_PER_PAGE = 7;
+  const [page, setPage] = useState(1);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filtered.length / ITEMS_PER_PAGE)
+  );
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+
+
   /* ================= RENDER ================= */
 
   return (
@@ -384,6 +404,65 @@ const PodholderManagementScreen = () => {
 
       {/* TABLE HEADER */}
 
+      {/* ===== FIXED TABLE HEADER (DESKTOP ONLY) ===== */}
+      {!isCompact && !loading && (
+        <View
+          style={[
+            styles.tableHeader,
+            {
+              borderColor: colors.border,
+              backgroundColor: colors.card,
+            },
+          ]}
+        >
+          <Text style={[styles.th, { flex: COL.SNO, color: colors.muted }]}>
+            S.No
+          </Text>
+          <Text style={[styles.th, { flex: COL.SERIAL, color: colors.muted }]}>
+            Serial Number
+          </Text>
+          <Text
+            style={[
+              styles.th,
+              {
+                flex: COL.MODEL,
+                color: colors.muted,
+                paddingLeft: 8,
+                textAlign: 'left',
+              },
+            ]}
+          >
+            Model
+          </Text>
+
+          <Text
+            style={[
+              styles.th,
+              {
+                flex: COL.STATUS,
+                color: colors.muted,
+                paddingLeft: 66,
+                textAlign: 'left',
+              },
+            ]}
+          >
+            Status
+          </Text>
+
+          <Text style={[styles.th, { flex: COL.ASSIGNED, color: colors.muted }]}>
+            Assigned To
+          </Text>
+          <Text
+            style={[
+              styles.th,
+              { flex: COL.ACTION, color: colors.muted, textAlign: 'center' },
+            ]}
+          >
+            Action
+          </Text>
+        </View>
+      )}
+
 
 
 
@@ -391,13 +470,24 @@ const PodholderManagementScreen = () => {
       {/* ================= LIST ================= */}
       <View style={{ flex: 1 }}>
         {loading ? (
-          <ActivityIndicator />
+          <View
+            style={{
+              flex: 1,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <ActivityIndicator size="large" />
+          </View>
         ) : isCompact ? (
           /* ================= MOBILE / COMPACT CARD VIEW ================= */
           <FlatList
-            data={filtered}
+            data={paginated}
+
             keyExtractor={item => item.pod_holder_id}
             keyboardShouldPersistTaps="handled"
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 24 }}
             style={{ flex: 1 }}
             renderItem={({ item }) => {
@@ -459,14 +549,14 @@ const PodholderManagementScreen = () => {
                         setConfirmValue(null);
 
                         if (clubs.length === 0) {
-                          await loadClubs();        // ✅ wait for data
+                          await loadClubs();
                         }
 
                         if (item.club?.club_id) {
                           setConfirmValue(item.club.club_id);
                         }
 
-                        setEditType('CLUB');       // ✅ open modal LAST
+                        setEditType('CLUB');
                       }}
 
 
@@ -489,65 +579,25 @@ const PodholderManagementScreen = () => {
         ) : (
           /* ================= DESKTOP / TABLE VIEW ================= */
           <FlatList
-            data={filtered}
+            data={paginated}
             keyExtractor={item => item.pod_holder_id}
             extraData={theme}
             keyboardShouldPersistTaps="handled"
-            style={{ flex: 1 }}
-            contentContainerStyle={{ paddingBottom: 24 }}
+            scrollEnabled={false}
+            showsVerticalScrollIndicator={false}
 
-            /* 🔥 THIS LINE FIXES HEADER SCROLLING */
-            stickyHeaderIndices={[0]}
+            /*  THIS LINE FIXES HEADER SCROLLING */
 
-            ListHeaderComponent={
-              <View
-                style={[
-                  styles.tableHeader,
-                  {
-                    borderColor: colors.border,
-                    backgroundColor: colors.card, // REQUIRED for sticky header
-                  },
-                ]}
-              >
-                <Text style={[styles.th, { flex: COL.SNO, color: colors.muted }]}>
-                  S.No
-                </Text>
-                <Text style={[styles.th, { flex: COL.SERIAL, color: colors.muted }]}>
-                  Serial Number
-                </Text>
-                <Text style={[styles.th, { flex: COL.MODEL, color: colors.muted }]}>
-                  Model
-                </Text>
-                <Text
-                  style={[
-                    styles.th,
-                    { flex: COL.STATUS, color: colors.muted, textAlign: 'center' },
-                  ]}
-                >
-                  Status
-                </Text>
-                <Text
-                  style={[styles.th, { flex: COL.ASSIGNED, color: colors.muted }]}
-                >
-                  Assigned To
-                </Text>
-                <Text
-                  style={[
-                    styles.th,
-                    { flex: COL.ACTION, color: colors.muted, textAlign: 'center' },
-                  ]}
-                >
-                  Action
-                </Text>
-              </View>
-            }
+
+
             renderItem={({ item, index }) => {
               const status = getStatus(item);
 
               return (
                 <View style={[styles.row, { borderColor: colors.border }]}>
                   <Text style={[styles.td, { flex: COL.SNO, color: colors.text }]}>
-                    {index + 1}
+                    {(page - 1) * ITEMS_PER_PAGE + index + 1}
+
                   </Text>
 
                   <Text
@@ -611,14 +661,14 @@ const PodholderManagementScreen = () => {
                         setConfirmValue(null);
 
                         if (clubs.length === 0) {
-                          await loadClubs();        // ✅ wait for data
+                          await loadClubs();
                         }
 
                         if (item.club?.club_id) {
                           setConfirmValue(item.club.club_id);
                         }
 
-                        setEditType('CLUB');       // ✅ open modal LAST
+                        setEditType('CLUB');
                       }}
 
 
@@ -668,6 +718,57 @@ const PodholderManagementScreen = () => {
         )}
       </View>
 
+      {/* ===== PAGINATION ===== */}
+      {!loading && totalPages > 1 && (
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'center',
+            alignItems: 'center',
+            marginTop: 12,
+            gap: 16,
+          }}
+        >
+          <TouchableOpacity
+            disabled={page === 1}
+            onPress={() => setPage(p => Math.max(1, p - 1))}
+          >
+            <Text
+                                style={{
+                                  color: page === 1 ? colors.muted : '#2563EB',
+                                  fontWeight: '600',
+                                }}
+                              >
+                                Prev
+                              </Text>
+                            </TouchableOpacity>
+
+                            {/* PAGE INFO */}
+                            <Text
+                              style={{
+                                color: colors.text,
+                                fontWeight: '600',
+                              }}
+                            >
+                              Page {page} / {totalPages}
+                            </Text>
+
+                            {/* NEXT */}
+                            <TouchableOpacity
+                              disabled={page === totalPages}
+                              onPress={() => setPage(p => Math.min(totalPages, p + 1))}
+                            >
+                              <Text
+                                style={{
+                                  color: page === totalPages ? colors.muted : '#2563EB',
+                                  fontWeight: '600',
+                                }}
+                              >
+                                Next
+                              </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
 
 
@@ -859,9 +960,9 @@ const PodholderManagementScreen = () => {
         onClose={() => setOpenRegister(false)}
         onRegister={async payload => {
           try {
-            await createPodHolder(payload);   // ✅ API call
-            setOpenRegister(false);           // ✅ close AFTER success
-            loadPodholders();                 // ✅ refresh list
+            await createPodHolder(payload);
+            setOpenRegister(false);
+            loadPodholders();
           } catch (e) {
             console.error('Register failed', e);
           }
@@ -900,7 +1001,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    flexWrap: 'wrap', // ✅ IMPORTANT
+    flexWrap: 'wrap',
     gap: 10,
   },
 
@@ -951,7 +1052,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
 
-  /* ✅ FIXED */
+
   th: {
     fontSize: 12,
     fontWeight: '600',
@@ -1023,7 +1124,7 @@ const styles = StyleSheet.create({
   },
 
   optionSelected: {
-    backgroundColor: 'rgba(37,99,235,0.2)', // works in dark & light
+    backgroundColor: 'rgba(37,99,235,0.2)',
   },
 
 

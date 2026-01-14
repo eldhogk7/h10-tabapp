@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-const EXPANDED_WIDTH = 220;
+const EXPANDED_WIDTH = 240;
 const COLLAPSED_WIDTH = 64;
 
 /* ================= MENU CONFIG ================= */
@@ -19,7 +19,7 @@ const MENU_ITEMS = [
     icon: 'grid-outline',
   },
   {
-    key: 'ClubManagement', // ✅ FIXED
+    key: 'ClubManagement',
     label: 'Club Management',
     icon: 'business-outline',
   },
@@ -34,11 +34,22 @@ const MENU_ITEMS = [
     icon: 'hardware-chip-outline',
   },
   {
-    key: 'CreateCoach',
-    label: 'Create Coach',
-    icon: 'person-add-outline',
+      key: 'Payment',
+      label: 'Payment',
+      icon: 'card-outline',
+    },
+    {
+      key: 'SupportTickets',
+      label: 'Support Tickets',
+      icon: 'help-circle-outline',
+    },
+  {
+      key: 'Settings',
+      label: 'Settings',
+      icon: 'settings-outline',
   },
 ] as const;
+
 
 /* ================= TYPES ================= */
 
@@ -119,6 +130,7 @@ export default SidebarSuperAdmin;
 /* ================= STYLES ================= */
 
 const styles = StyleSheet.create({
+
   sidebar: {
     backgroundColor: '#000',
     height: '100%',

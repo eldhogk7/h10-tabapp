@@ -1,4 +1,3 @@
-// src/screens/ClubAdmin/CreateCoach.tsx
 import React, { useState } from 'react';
 import {
   View,

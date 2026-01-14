@@ -1,4 +1,3 @@
-// src/components/Sidebar/SidebarCoach.tsx
 import React from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';

@@ -10,7 +10,7 @@ export async function fetchPods(): Promise<any[]> {
     const res = await fetch(`${API_BASE_URL}/pods`);
 
     if (!res.ok) {
-      console.error('❌ fetchPods HTTP error:', res.status);
+      console.error(' fetchPods HTTP error:', res.status);
       return [];
     }
 
@@ -26,10 +26,10 @@ export async function fetchPods(): Promise<any[]> {
       return json.data.data;
     }
 
-    console.warn('⚠ fetchPods: unexpected payload shape', json);
+    console.warn(' fetchPods: unexpected payload shape', json);
     return [];
   } catch (err) {
-    console.error('❌ fetchPods failed:', err);
+    console.error(' fetchPods failed:', err);
     return [];
   }
 }
@@ -53,7 +53,7 @@ export const getAvailablePods = async (): Promise<any[]> => {
     );
     return [];
   } catch (err) {
-    console.error('❌ getAvailablePods failed:', err);
+    console.error(' getAvailablePods failed:', err);
     return [];
   }
 };
@@ -86,20 +86,20 @@ export async function createPodsBatch(
     });
 
     if (!res.ok) {
-      console.error('❌ createPodsBatch HTTP error:', res.status);
+      console.error(' createPodsBatch HTTP error:', res.status);
       return null;
     }
 
     const json = await res.json();
 
     if (!json?.data) {
-      console.error('❌ createPodsBatch: missing data', json);
+      console.error(' createPodsBatch: missing data', json);
       return null;
     }
 
     return json.data;
   } catch (err) {
-    console.error('❌ createPodsBatch failed:', err);
+    console.error(' createPodsBatch failed:', err);
     return null;
   }
 }

@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     width: '15%',
     aspectRatio: 1,
     borderRadius: 10,
-    borderWidth: 2,              // ✅ FIXED WIDTH
+    borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',

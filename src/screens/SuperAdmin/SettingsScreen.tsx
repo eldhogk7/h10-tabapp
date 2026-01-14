@@ -73,7 +73,7 @@ const SettingsScreen = ({ goBack }: Props) => {
           onPress: async () => {
             await logout();
 
-            // 🔥 force auth re-check
+
             navigation.reset({
               index: 0,
               routes: [{ name: 'AuthLoadingScreen' }],
@@ -91,10 +91,10 @@ const SettingsScreen = ({ goBack }: Props) => {
     <>
       <ScrollView contentContainerStyle={[styles.content, { backgroundColor: bg }]}>
         {/* BACK */}
-        <TouchableOpacity style={styles.backRow} onPress={goBack}>
+       {/* <TouchableOpacity style={styles.backRow} onPress={goBack}>
           <Ionicons name="arrow-back-outline" size={20} color={text} />
           <Text style={[styles.backText, { color: text }]}>Back</Text>
-        </TouchableOpacity>
+        </TouchableOpacity> */}
 
         <Text style={[styles.pageTitle, { color: text }]}>Settings</Text>
         <Text style={styles.pageSub}>Manage your preferences</Text>

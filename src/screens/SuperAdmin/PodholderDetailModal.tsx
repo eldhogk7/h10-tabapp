@@ -39,7 +39,7 @@ const PodholderDetailModal = ({ visible, podHolder, onClose }: Props) => {
   const [availablePods, setAvailablePods] = useState<Pod[]>([]);
   const [filter, setFilter] = useState<'ALL' | PodStatus>('ALL');
 
-  // 🔥 UI-only empty slots
+
   const [extraSlots, setExtraSlots] = useState<number[]>([]);
   const [selectedEmptyId, setSelectedEmptyId] = useState<number | null>(null);
 
@@ -107,7 +107,7 @@ const PodholderDetailModal = ({ visible, podHolder, onClose }: Props) => {
       `/pod-holders/${holder.pod_holder_id}/add-pod/${podId}`
     );
 
-    // 🔥 cleanup UI-only empty slot
+
     setExtraSlots(slots => slots.filter(id => id !== selectedEmptyId));
     setSelectedEmptyId(null);
     loadAll();

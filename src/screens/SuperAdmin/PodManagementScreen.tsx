@@ -44,7 +44,7 @@ type Pod = {
 
 
 /* ================= PAGINATION (ADDED) ================= */
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 9;
 
 
 /* ================= COLORS ================= */
@@ -66,7 +66,6 @@ const COLORS = {
   },
 };
 
-// ✅ Used ONLY for top filter dropdown
 const FILTER_STATUS_OPTIONS: PodStatus[] = [
   'ALL',
   'ACTIVE',
@@ -77,7 +76,7 @@ const FILTER_STATUS_OPTIONS: PodStatus[] = [
   'REPAIRED',
 ];
 
-// ✅ Used ONLY for row status edit (NO ALL)
+
 const ROW_STATUS_OPTIONS: Exclude<PodStatus, 'ALL'>[] = [
   'ACTIVE',
   'ASSIGNED',
@@ -196,7 +195,7 @@ const PodManagementScreen = () => {
       .sort((a, b) => {
         const aNum = Number(a.serial.replace('PD', ''));
         const bNum = Number(b.serial.replace('PD', ''));
-        return aNum - bNum; // ✅ ASCENDING
+        return aNum - bNum;
       });
   }, [pods, selectedBatch, statusFilter, search]);
 
@@ -231,7 +230,7 @@ const PodManagementScreen = () => {
       MAINTENANCE: pods.filter(p => p.status === 'MAINTENANCE').length,
       DAMAGED: pods.filter(p => p.status === 'DAMAGED').length,
       LOST: pods.filter(p => p.status === 'LOST').length,
-      REPAIRED: pods.filter(p => p.status === 'REPAIRED').length, // ✅ ADD
+      REPAIRED: pods.filter(p => p.status === 'REPAIRED').length,
     }),
     [pods],
   );
@@ -289,7 +288,7 @@ const PodManagementScreen = () => {
         </View>
 
         {/* ================= SEARCH | BATCH | STATUS ================= */}
-                   <View style={{ marginBottom: 12 }}>
+                   <View style={{ marginBottom: -13 }}>
 
                      <View style={{ flexDirection: 'row', gap: 12 }}>
 
@@ -415,7 +414,7 @@ const PodManagementScreen = () => {
                      </View>
                    </Modal>
 
-                   {/* ================= ROW EDIT STATUS MODAL ================= */}
+
                    {/* ================= ROW EDIT STATUS MODAL ================= */}
                    <Modal visible={rowMenuOpen} transparent animationType="fade">
                      <TouchableOpacity
@@ -511,7 +510,7 @@ const PodManagementScreen = () => {
                               statusFilter === s ? '#2563EB22' : 'transparent',
                           }}
                           onPress={() => {
-                            setStatusFilter(s);   // ✅ THIS WAS MISSING
+                            setStatusFilter(s);
                             setFilterOpen(false);
                             setPage(1);
                           }}
@@ -615,20 +614,64 @@ const PodManagementScreen = () => {
       </View>
 
       {/* ================= ONLY THIS SCROLLS ================= */}
-      <View style={{ flex: 1, paddingHorizontal: 16 }}>
+      <View style={{paddingHorizontal: 16 }}>
 
         {isTablet && (
-          <View style={[styles.tableHeader, { borderColor: colors.border }]}>
-            <Text style={[styles.colSno, styles.th, { color: colors.text }]}>S.No</Text>
-            <Text style={[styles.colSerial, styles.th, { color: colors.text }]}>Serial</Text>
-            <Text style={[styles.colDevice, styles.th, { color: colors.text }]}>Device</Text>
-            <Text style={[styles.colStatus, styles.th, { color: colors.text }]}>Status</Text>
+          <View
+            style={[
+              styles.tableHeader,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+              },
+            ]}
+          >
+            <Text style={[styles.th, styles.colSno, { color: colors.muted }]}>
+              S.No
+            </Text>
+
+            <Text style={[styles.th, styles.colSerial, { color: colors.muted }]}>
+              Serial
+            </Text>
+
+
+            <Text
+              style={[
+                styles.th,
+                styles.colDevice,
+                {
+                  color: colors.muted,
+                  textAlign: 'left',
+                  paddingLeft: 8,
+                },
+              ]}
+            >
+              Device
+            </Text>
+
+
+            <Text
+              style={[
+                styles.th,
+                styles.colStatus,
+                {
+                  color: colors.muted,
+                  textAlign: 'left',
+                  paddingLeft: 24,
+                },
+              ]}
+            >
+              Status
+            </Text>
           </View>
         )}
+
+
 
         <FlatList
           data={paginatedPods}
           keyExtractor={item => item.id}
+          scrollEnabled={false}
           keyboardShouldPersistTaps="handled"
           removeClippedSubviews={false}
           contentContainerStyle={{ paddingBottom: 80 }}
@@ -646,7 +689,7 @@ const PodManagementScreen = () => {
                 {item.deviceId}
               </Text>
 
-              <View style={styles.colStatus}>
+              <View style={[styles.colStatus, { alignItems: 'center' }]}>
                 <TouchableOpacity
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
                   onPress={e => {
@@ -672,34 +715,49 @@ const PodManagementScreen = () => {
           ListFooterComponent={
             totalPages > 1 ? (
               <View style={styles.pagination}>
+                {/* PREVIOUS */}
                 <TouchableOpacity
                   disabled={page === 1}
                   onPress={() => setPage(p => Math.max(1, p - 1))}
                 >
-                  <Ionicons
-                    name="chevron-back"
-                    size={22}
-                    color={page === 1 ? colors.muted : colors.text}
-                  />
+                  <Text
+                    style={{
+                      color: page === 1 ? colors.muted : '#2563EB',
+                      fontWeight: '600',
+                    }}
+                  >
+                    Prev
+                  </Text>
                 </TouchableOpacity>
 
-                <Text style={{ color: colors.text }}>
+                {/* PAGE INFO */}
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontWeight: '600',
+                  }}
+                >
                   Page {page} / {totalPages}
                 </Text>
 
+                {/* NEXT */}
                 <TouchableOpacity
                   disabled={page === totalPages}
                   onPress={() => setPage(p => Math.min(totalPages, p + 1))}
                 >
-                  <Ionicons
-                    name="chevron-forward"
-                    size={22}
-                    color={page === totalPages ? colors.muted : colors.text}
-                  />
+                  <Text
+                    style={{
+                      color: page === totalPages ? colors.muted : '#2563EB',
+                      fontWeight: '600',
+                    }}
+                  >
+                    Next
+                  </Text>
                 </TouchableOpacity>
               </View>
             ) : null
           }
+
         />
       </View>
 
@@ -892,7 +950,7 @@ iconBtn: {
     fontWeight: '600',
   },
   status_REPAIRED: {
-    color: '#14B8A6', // teal (repair-success)
+    color: '#14B8A6',
     fontWeight: '600',
   },
 });

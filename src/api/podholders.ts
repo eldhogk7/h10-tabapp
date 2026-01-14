@@ -5,7 +5,7 @@ import api from './axios';
 export const getAvailablePods = async () => {
   const res = await api.get('/pod-holders/available');
 
-  // 🔥 backend wraps result in { data }
+  //  backend wraps result in { data }
   return Array.isArray(res.data?.data) ? res.data.data : [];
 };
 
