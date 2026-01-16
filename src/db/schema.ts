@@ -2,6 +2,8 @@ import { db } from "./sqlite";
 
 export function initDB() {
   try {
+    /* ================= RAW SENSOR DATA ================= */
+
     db.execute(`
       CREATE TABLE IF NOT EXISTS raw_data (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,6 +26,8 @@ export function initDB() {
         timestamp_ms INTEGER
       );
     `);
+
+    /* ================= CALCULATED METRICS ================= */
 
     db.execute(`
       CREATE TABLE IF NOT EXISTS calculated_data (
@@ -54,7 +58,26 @@ export function initDB() {
       );
     `);
 
-    // ✅ SAFE MIGRATION (runs once)
+    /* ================= EVENT / SESSION METADATA ================= */
+
+    db.execute(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        session_id TEXT PRIMARY KEY,
+        event_name TEXT NOT NULL,
+        event_type TEXT CHECK(event_type IN ('match','training')) NOT NULL,
+        event_date TEXT NOT NULL,
+
+        location TEXT,
+        field TEXT,
+        notes TEXT,
+
+        created_at INTEGER
+      );
+    `);
+
+    /* ================= SAFE MIGRATIONS ================= */
+
+    // Add synced flag to calculated_data (runs once)
     try {
       db.execute(`
         ALTER TABLE calculated_data
@@ -62,10 +85,11 @@ export function initDB() {
       `);
       console.log("🆕 'synced' column added");
     } catch {
-      // column already exists → ignore
+      // already exists → ignore
     }
 
     console.log("✅ SQLite tables ready");
+
   } catch (err) {
     console.error("❌ DB INIT FAILED:", err);
   }

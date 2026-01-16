@@ -6,205 +6,208 @@ import {
   Switch,
   TouchableOpacity,
   ScrollView,
+  Modal,
+  TextInput,
+  Alert,
 } from 'react-native';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 
-import SuperAdminNavbar from '../../components/Navbar/SuperAdminNavbar';
-import SidebarSuperAdmin, {
-  ScreenType,
-} from '../../components/Sidebar/SidebarSuperAdmin';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { useTheme } from '../../components/context/ThemeContext';
 import { logout } from '../../utils/logout';
 
-const SettingsScreen = () => {
-  const navigation = useNavigation<any>();
+interface Props {
+  goBack: () => void;
+}
+
+const SettingsScreen = ({ goBack }: Props) => {
   const { theme, toggleTheme } = useTheme();
+  const navigation = useNavigation<any>();
+
   const isDark = theme === 'dark';
 
-  /* ===== SIDEBAR ===== */
-  const [activeScreen, setActiveScreen] =
-    useState<ScreenType>('Settings');
-  const [collapsed, setCollapsed] = useState(false);
-
-  /* ===== STATES ===== */
+  /* SETTINGS STATES */
   const [emailNotif, setEmailNotif] = useState(true);
   const [pushNotif, setPushNotif] = useState(true);
   const [alertSound, setAlertSound] = useState(false);
   const [twoFA, setTwoFA] = useState(false);
 
+  /* CHANGE PASSWORD MODAL */
+  const [openPassword, setOpenPassword] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const bg = isDark ? '#020617' : '#F1F5F9';
   const cardBg = isDark ? '#0F172A' : '#FFFFFF';
   const text = isDark ? '#E5E7EB' : '#020617';
-  const subText = '#64748b';
-  const iconColor = isDark ? '#E5E7EB' : '#000000';
+  const sub = '#64748b';
+
+  const handleUpdatePassword = () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Error', 'All fields are required');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    Alert.alert('Success', 'Password updated successfully');
+    setOpenPassword(false);
+    setOldPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+  };
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+
+
+            navigation.reset({
+              index: 0,
+              routes: [{ name: 'AuthLoadingScreen' }],
+            });
+          },
+        },
+      ],
+    );
+  };
+
 
 
 
   return (
-    <View style={styles.root}>
-      <SuperAdminNavbar />
+    <>
+      <ScrollView contentContainerStyle={[styles.content, { backgroundColor: bg }]}>
+        {/* BACK */}
+       {/* <TouchableOpacity style={styles.backRow} onPress={goBack}>
+          <Ionicons name="arrow-back-outline" size={20} color={text} />
+          <Text style={[styles.backText, { color: text }]}>Back</Text>
+        </TouchableOpacity> */}
 
-      <View style={styles.body}>
-        <SidebarSuperAdmin
-          active={activeScreen}
-          setActive={setActiveScreen}
-          collapsed={collapsed}
-          toggleSidebar={() => setCollapsed(v => !v)}
-        />
+        <Text style={[styles.pageTitle, { color: text }]}>Settings</Text>
+        <Text style={styles.pageSub}>Manage your preferences</Text>
 
-        <ScrollView contentContainerStyle={[styles.content, { backgroundColor: bg }]}>
-          {/* PAGE HEADER */}
-          <Text style={[styles.pageTitle, { color: text }]}>Settings</Text>
-          <Text style={styles.pageSub}>
-            Manage your app preferences and account settings
-          </Text>
+        {/* APPEARANCE */}
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
+          <Text style={[styles.sectionTitle, { color: text }]}>Appearance</Text>
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: text }]}>Dark Mode</Text>
+            <Switch value={isDark} onValueChange={toggleTheme} />
+          </View>
+        </View>
 
-          {/* ================= APPEARANCE ================= */}
-          <View style={[styles.card, { backgroundColor: cardBg }]}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="moon-outline" size={20}  color={iconColor} />
-              <View>
-                <Text style={[styles.sectionTitle, { color: text }]}>
-                  Appearance
-                </Text>
-                <Text style={styles.sectionDesc}>
-                  Customize how the app looks
-                </Text>
-              </View>
-            </View>
+        {/* NOTIFICATIONS */}
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
+          <Text style={[styles.sectionTitle, { color: text }]}>Notifications</Text>
 
-            <View style={styles.settingRow}>
-              <View>
-                <Text style={[styles.label, { color: text }]}>Dark Mode</Text>
-                <Text style={styles.desc}>
-                  Toggle between light and dark themes
-                </Text>
-              </View>
-              <Switch value={isDark} onValueChange={toggleTheme} />
-            </View>
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: text }]}>Email</Text>
+            <Switch value={emailNotif} onValueChange={setEmailNotif} />
           </View>
 
-          {/* ================= NOTIFICATIONS ================= */}
-          <View style={[styles.card, { backgroundColor: cardBg }]}>
-            <View style={styles.sectionHeader}>
-              <Ionicons
-                name="notifications-outline"
-                size={20}
-                color={iconColor}
-              />
-              <View>
-                <Text style={[styles.sectionTitle, { color: text }]}>
-                  Notification
-                </Text>
-                <Text style={styles.sectionDesc}>
-                  Manage notification preferences
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.settingRow}>
-              <View>
-                <Text style={[styles.label, { color: text }]}>
-                  Email Notification
-                </Text>
-                <Text style={styles.desc}>
-                  Receive updates via email
-                </Text>
-              </View>
-              <Switch value={emailNotif} onValueChange={setEmailNotif} />
-            </View>
-
-            <View style={styles.settingRow}>
-              <View>
-                <Text style={[styles.label, { color: text }]}>
-                  Push Notification
-                </Text>
-                <Text style={styles.desc}>
-                  Receive notifications on your device
-                </Text>
-              </View>
-              <Switch value={pushNotif} onValueChange={setPushNotif} />
-            </View>
-
-            <View style={styles.settingRow}>
-              <View>
-                <Text style={[styles.label, { color: text }]}>
-                  Alert Sounds
-                </Text>
-                <Text style={styles.desc}>
-                  Play sounds for important alerts
-                </Text>
-              </View>
-              <Switch value={alertSound} onValueChange={setAlertSound} />
-            </View>
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: text }]}>Push</Text>
+            <Switch value={pushNotif} onValueChange={setPushNotif} />
           </View>
 
-          {/* ================= SECURITY ================= */}
-          <View style={[styles.card, { backgroundColor: cardBg }]}>
-            <View style={styles.sectionHeader}>
-              <Ionicons
-                name="shield-checkmark-outline"
-                size={20}
-                color={iconColor}
-              />
-              <View>
-                <Text style={[styles.sectionTitle, { color: text }]}>
-                  Security
-                </Text>
-                <Text style={styles.sectionDesc}>
-                  Manage account security settings
-                </Text>
-              </View>
-            </View>
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: text }]}>Alert Sounds</Text>
+            <Switch value={alertSound} onValueChange={setAlertSound} />
+          </View>
+        </View>
 
-            <View style={styles.settingRow}>
-              <View>
-                <Text style={[styles.label, { color: text }]}>
-                  Two-Factor Authentication
-                </Text>
-                <Text style={styles.desc}>
-                  Add an extra layer of security
-                </Text>
-              </View>
-              <Switch value={twoFA} onValueChange={setTwoFA} />
-            </View>
+        {/* SECURITY */}
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
+          <Text style={[styles.sectionTitle, { color: text }]}>Security</Text>
 
-            <TouchableOpacity
-              style={styles.primaryBtn}
-              onPress={() => navigation.navigate('ChangePassword')}
-            >
-              <Ionicons name="key-outline" size={16} color="#fff" />
-              <Text style={styles.primaryBtnText}>Change Password</Text>
-            </TouchableOpacity>
+          <View style={styles.row}>
+            <Text style={[styles.label, { color: text }]}>Two-Factor Auth</Text>
+            <Switch value={twoFA} onValueChange={setTwoFA} />
           </View>
 
-          {/* ================= SIGN OUT ================= */}
-          <View style={[styles.card, { backgroundColor: cardBg }]}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="log-out-outline" size={20} color={iconColor} />
-              <View>
-                <Text style={[styles.sectionTitle, { color: text }]}>
-                  Sign Out
-                </Text>
-                <Text style={styles.sectionDesc}>
-                  Sign out of your account
-                </Text>
-              </View>
+          <TouchableOpacity
+            style={styles.smallBtn}
+            onPress={() => setOpenPassword(true)}
+          >
+            <Ionicons name="key-outline" size={14} color="#fff" />
+            <Text style={styles.smallBtnText}>Change Password</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* SIGN OUT */}
+        <View style={[styles.card, { backgroundColor: cardBg }]}>
+          <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+            <Ionicons name="log-out-outline" size={14} color="#fff" />
+            <Text style={styles.logoutText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+
+      {/* CHANGE PASSWORD MODAL */}
+      <Modal transparent visible={openPassword} animationType="fade">
+        <View style={styles.overlay}>
+          <View style={[styles.modalCard, { backgroundColor: cardBg }]}>
+            <Text style={[styles.modalTitle, { color: text }]}>
+              Change Password
+            </Text>
+
+            <TextInput
+              placeholder="Current Password"
+              placeholderTextColor={sub}
+              secureTextEntry
+              style={[styles.input, { color: text }]}
+              value={oldPassword}
+              onChangeText={setOldPassword}
+            />
+            <TextInput
+              placeholder="New Password"
+              placeholderTextColor={sub}
+              secureTextEntry
+              style={[styles.input, { color: text }]}
+              value={newPassword}
+              onChangeText={setNewPassword}
+            />
+            <TextInput
+              placeholder="Confirm Password"
+              placeholderTextColor={sub}
+              secureTextEntry
+              style={[styles.input, { color: text }]}
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.cancelBtn]}
+                onPress={() => setOpenPassword(false)}
+              >
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.updateBtn]}
+                onPress={handleUpdatePassword}
+              >
+                <Text style={styles.updateText}>Update</Text>
+              </TouchableOpacity>
             </View>
 
-            <TouchableOpacity
-              style={styles.logoutBtn}
-              onPress={() => logout(navigation)}
-            >
-              <Ionicons name="log-out-outline" size={16} color="#fff" />
-              <Text style={styles.logoutText}>Sign Out</Text>
-            </TouchableOpacity>
           </View>
-        </ScrollView>
-      </View>
-    </View>
+        </View>
+      </Modal>
+    </>
   );
 };
 
@@ -212,103 +215,129 @@ export default SettingsScreen;
 
 /* ================= STYLES ================= */
 const styles = StyleSheet.create({
-  root: { flex: 1 },
+  content: { padding: 24 },
 
-  body: {
-    flex: 1,
-    flexDirection: 'row',
-  },
+  backRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  backText: { marginLeft: 6, fontSize: 15, fontWeight: '600' },
 
-  content: {
-    flexGrow: 1,
-    padding: 24,
-  },
-
-  pageTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-  },
-
-  pageSub: {
-    color: '#64748b',
-    marginBottom: 24,
-  },
+  pageTitle: { fontSize: 26, fontWeight: '800' },
+  pageSub: { color: '#64748b', marginBottom: 24 },
 
   card: {
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 16,
+    padding: 18,
     marginBottom: 18,
-  },
-
-  sectionHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 14,
   },
 
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
+    marginBottom: 12,
   },
 
-  sectionDesc: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-
-
-
-  settingRow: {
+  row: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 14,
+    alignItems: 'center',
+    marginBottom: 12,
   },
 
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  label: { fontSize: 14, fontWeight: '600' },
 
-  desc: {
-    fontSize: 12,
-    color: '#64748b',
-  },
-
-  primaryBtn: {
+  smallBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#3b82f6',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    gap: 8,
-    marginTop: 10,
+    backgroundColor: '#2563eb',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    gap: 6,
+    marginTop: 6,
   },
 
-  primaryBtnText: {
+  smallBtnText: {
     color: '#fff',
-    fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: '#ef4444',
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 10,
-    gap: 8,
-    marginTop: 6,
+    backgroundColor: '#991b1b',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    gap: 6,
   },
 
-  logoutText: {
-    color: '#fff',
-    fontWeight: '700',
+  logoutText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    padding: 24,
+  },
+
+  modalCard: {
+    width: '85%',
+    maxWidth: 420,
+    alignSelf: 'center',
+    borderRadius: 16,
+    padding: 20,
+  },
+
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    marginBottom: 14,
+  },
+
+  input: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 12,
     fontSize: 14,
   },
+
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 16,
+  },
+
+  modalBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+  },
+
+  cancelBtn: {
+    backgroundColor: '#334155', // dark gray
+  },
+
+  cancelText: {
+    color: '#E5E7EB',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  updateBtn: {
+    backgroundColor: '#2563EB', // blue
+  },
+
+  updateText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+
 });

@@ -3,7 +3,6 @@ import { db } from "../db/sqlite";
 
 /* ================= HELPERS ================= */
 
-// ms → HH:MM:SS (for logs only)
 function msToTime(ms: number): string {
   const d = new Date(ms);
   return d.toISOString().substr(11, 8);
@@ -12,8 +11,16 @@ function msToTime(ms: number): string {
 export async function importCsvToSQLite(
   csvText: string,
   sessionId: string,
-  trimStartMs: number,
-  trimEndMs: number
+  trimStartMs = 0,
+  trimEndMs = Infinity,
+  eventDraft?: {
+    eventName: string;
+    eventType: "match" | "training";
+    eventDate: string;
+    location?: string;
+    field?: string;
+    notes?: string;
+  }
 ) {
   /* ================= NORMALIZE CSV ================= */
 
@@ -32,10 +39,8 @@ export async function importCsvToSQLite(
   }
 
   const rows = parsed.data as any[];
-
   if (!rows.length) {
-    console.warn("❌ NO ROWS AFTER PARSE");
-    return;
+    throw new Error("No rows after CSV parse");
   }
 
   /* ================= SESSION START ================= */
@@ -48,33 +53,62 @@ export async function importCsvToSQLite(
   const absStart = sessionStartMs + trimStartMs;
   const absEnd = sessionStartMs + trimEndMs;
 
-  console.log("🟢 TRIM WINDOW");
-  console.log("Start:", msToTime(absStart));
-  console.log("End:  ", msToTime(absEnd));
+  console.log("🟢 TRIM WINDOW", msToTime(absStart), "→", msToTime(absEnd));
 
-  /* ================= CLEAR OLD DATA ================= */
+  /* ================= TRANSACTION ================= */
 
-  await db.execute(
-    `DELETE FROM raw_data WHERE session_id = ?`,
-    [sessionId]
-  );
-
-  /* ================= INSERT DATA ================= */
-
-  let inserted = 0;
   let txStarted = false;
 
   try {
     await db.execute("BEGIN");
     txStarted = true;
 
+    /* ===== SAVE EVENT / SESSION METADATA (THIS WAS MISSING) ===== */
+
+    if (eventDraft) {
+      await db.execute(
+        `
+        INSERT OR REPLACE INTO sessions (
+          session_id,
+          event_name,
+          event_type,
+          event_date,
+          location,
+          field,
+          notes,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          sessionId,
+          eventDraft.eventName,
+          eventDraft.eventType,
+          eventDraft.eventDate,
+          eventDraft.location ?? null,
+          eventDraft.field ?? null,
+          eventDraft.notes ?? null,
+          Date.now(),
+        ]
+      );
+
+      console.log("✅ SESSION SAVED:", sessionId);
+    }
+
+    /* ===== CLEAR OLD RAW DATA ===== */
+
+    await db.execute(
+      `DELETE FROM raw_data WHERE session_id = ?`,
+      [sessionId]
+    );
+
+    /* ===== INSERT RAW DATA ===== */
+
+    let inserted = 0;
+
     for (const row of rows) {
-      if (!row.player_id || !row.timestamp_ms) continue;
-
       const timestamp = Number(row.timestamp_ms);
-      if (isNaN(timestamp)) continue;
-
-      // ⏱️ TRIM WINDOW
+      if (!row.player_id || isNaN(timestamp)) continue;
       if (timestamp < absStart || timestamp > absEnd) continue;
 
       await db.execute(
@@ -83,30 +117,26 @@ export async function importCsvToSQLite(
           session_id,
           player_id,
           timestamp_ms,
-
           acc_x, acc_y, acc_z,
           quat_w, quat_x, quat_y, quat_z,
           lat, lon,
           heartrate
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
           sessionId,
           Number(row.player_id),
           timestamp,
-
           Number(row.acc_x),
           Number(row.acc_y),
           Number(row.acc_z),
-
           Number(row.quat_w),
           Number(row.quat_x),
           Number(row.quat_y),
           Number(row.quat_z),
-
           Number(row.lat),
           Number(row.lon),
-
           Number(row.heartrate),
         ]
       );
@@ -117,25 +147,12 @@ export async function importCsvToSQLite(
     await db.execute("COMMIT");
 
     console.log(`✅ RAW DATA INSERTED: ${inserted}`);
-
-    /* ================= DEBUG STATS ================= */
-
-    const stats = db.execute(
-      `
-      SELECT
-        COUNT(*) as count,
-        MIN(timestamp_ms) as start,
-        MAX(timestamp_ms) as end
-      FROM raw_data
-      WHERE session_id = ?
-      `,
+    const res = await db.execute(
+      "SELECT * FROM sessions WHERE session_id = ?",
       [sessionId]
-    ).rows._array[0];
+    );
 
-    console.log("🟡 DB STATS");
-    console.log("Start:", msToTime(stats.start));
-    console.log("End:  ", msToTime(stats.end));
-    console.log("Rows:", stats.count);
+    console.log("📋 SESSION ROW:", res.rows._array);
 
   } catch (err) {
     if (txStarted) {

@@ -1,4 +1,3 @@
-// src/components/SuperAdminNavbar.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -7,126 +6,95 @@ import {
   TouchableOpacity,
   Pressable,
   Dimensions,
-  Platform,
   StatusBar,
   Image,
+  Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import NetInfo from '@react-native-community/netinfo';
-
 import ThemeToggle from '../context/ThemeToggle';
 import { fetchProfile } from '../../api/auth';
 import { useTheme } from '../context/ThemeContext';
 import { API_BASE_URL } from '../../utils/constants';
 import { logout } from '../../utils/logout';
-import type { RootStackParamList } from '../../navigation/AppNavigator';
-
-import {
-  saveProfileToCache,
-  loadProfileFromCache,
-  clearProfileCache,
-} from '../../utils/profileCache';
-
-/* ================= TYPES ================= */
-
-type Props = {
-  title: string;
-  toggleSidebar: () => void;
-  sidebarOpen: boolean;
-};
-
-type NavProp = NativeStackNavigationProp<RootStackParamList>;
+import type { ScreenType } from '../Sidebar/SidebarSuperAdmin';
 
 const { width, height } = Dimensions.get('window');
 
-const HEADER_HEIGHT = 56;
-const TOP_PADDING =
-  Platform.OS === 'android' ? StatusBar.currentHeight || 12 : 20;
+const NAVBAR_HEIGHT = 56;
+const STATUS_BAR_HEIGHT =
+  Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0;
 
-const SuperAdminNavbar = () => {
-  /* ✅ ALL HOOKS AT TOP — STABLE ORDER */
+
+/* ================= PROPS ================= */
+interface Props {
+  toggleSidebar?: () => void;
+  onNavigate: (screen: ScreenType) => void;
+  profileRefreshKey: number;
+}
+
+const SuperAdminNavbar = ({
+  onNavigate,
+  profileRefreshKey,
+}: Props) => {
   const { theme } = useTheme();
+  const navigation = useNavigation<any>();
+
   const isDark = theme === 'dark';
-  const navigation = useNavigation<NavProp>();
+
+  const textColor = isDark ? '#E5E7EB' : '#020617';
+  const subTextColor = isDark ? '#94A3B8' : '#64748B';
+  const dividerColor = isDark ? '#1E293B' : '#CBD5E1';
+
 
   const [profileOpen, setProfileOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
 
-  /* ================= LOAD PROFILE ================= */
+  /* ===== LOAD / REFRESH PROFILE ===== */
+  useEffect(() => {
+    let mounted = true;
 
-  useFocusEffect(
-    React.useCallback(() => {
-      let mounted = true;
+    (async () => {
+      try {
+        const profile = await fetchProfile();
+        if (mounted) setUser(profile);
+      } catch (err) {
+        console.log('NAVBAR PROFILE ERROR', err);
+      }
+    })();
 
-      (async () => {
-        // 1️⃣ Load cached profile FIRST (offline support)
-        const cached = await loadProfileFromCache();
-        if (cached && mounted) {
-          setUser(cached);
-        }
-
-        // 2️⃣ Check network
-        const net = await NetInfo.fetch();
-        if (!net.isConnected) return;
-
-        // 3️⃣ Fetch fresh profile
-        try {
-          const profile = await fetchProfile();
-          if (!profile || !mounted) return;
-
-          setUser(profile);
-
-          // ✅ Save to cache
-          await saveProfileToCache(profile);
-        } catch (err: any) {
-          console.log(
-            'SUPER ADMIN PROFILE ERR',
-            err?.response?.data || err?.message || err,
-          );
-        }
-      })();
-
-      return () => {
-        mounted = false;
-      };
-    }, []),
-  );
-
-  /* ================= ACTIONS ================= */
-
-  const handleEditProfile = () => {
-    setProfileOpen(false);
-    navigation.navigate('ProfileEdit');
-  };
-
+    return () => {
+      mounted = false;
+    };
+  }, [profileRefreshKey]);
   const handleLogout = async () => {
     setProfileOpen(false);
+    await logout();
 
-    // 🔥 CLEAR PROFILE CACHE ON LOGOUT
-    await clearProfileCache();
-
-    await logout(navigation);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Login' }],
+    });
   };
 
   return (
     <View style={styles.container}>
-      {/* STATUS BAR */}
-      {/* STATUS BAR */}
       <StatusBar
+        hidden={false}
         translucent={false}
-        backgroundColor="#2F343B"          // same as navbar
-        barStyle="light-content"           // white icons
+        backgroundColor="#2F343B"
+        barStyle="light-content"
       />
 
+
+
+      {/* ===== NAVBAR ===== */}
       <View
         style={[
           styles.navbar,
           {
-            backgroundColor: isDark ? '#2F343B' : '#2F343B',
-            paddingTop: TOP_PADDING,
-            height: HEADER_HEIGHT + TOP_PADDING,
+            backgroundColor: '#2F343B',
+            height: NAVBAR_HEIGHT,
           },
         ]}
       >
@@ -141,58 +109,43 @@ const SuperAdminNavbar = () => {
 
         {/* NOTIFICATION */}
         <TouchableOpacity style={styles.iconBtn}>
-          <Ionicons
-            name="notifications-outline"
-            size={22}
-            color={isDark ? '#E5E7EB' : '#FFFFFF'}
-          />
+          <Ionicons name="notifications-outline" size={22} color="#FFFFFF" />
         </TouchableOpacity>
 
-        {/*toggle*/}
+        {/* THEME */}
         <View style={{ marginLeft: 16 }}>
           <ThemeToggle />
         </View>
 
+        {/* USER */}
         {user && (
           <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => setProfileOpen(prev => !prev)}
+            style={styles.userBtn}
+            onPress={() => setProfileOpen(v => !v)}
           >
             {user.profile_image ? (
               <Image
                 source={{
-                  uri: user.profile_image.startsWith('http')
-                    ? user.profile_image
-                    : `${API_BASE_URL}/uploads/${user.profile_image}`,
+                  uri: `${API_BASE_URL}/uploads/${user.profile_image}`,
                 }}
                 style={[
                   styles.avatar,
-                  { borderColor: isDark ? '#22D3EE' : '#2563EB' },
+                  { borderColor: '#22D3EE' },
                 ]}
-                onError={() =>
-                  console.log('⚠️ SuperAdmin avatar failed to load')
-                }
               />
             ) : (
               <Ionicons
                 name="person-circle-outline"
-                size={30}
-                color={isDark ? '#22D3EE' : '#2563EB'}
+                size={34}
+                color="#FFFFFF"
               />
             )}
-            <Text
-              style={[
-                styles.userName,
-                { color: isDark ? '#FFFFFF' : '#FFFFFF' },
-              ]}
-            >
-              {user.name}
-            </Text>
+            <Text style={styles.userName}>{user.name}</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* DROPDOWN */}
+      {/* ===== DROPDOWN ===== */}
       {profileOpen && (
         <>
           <View
@@ -214,20 +167,11 @@ const SuperAdminNavbar = () => {
               style={styles.dropdownItem}
               onPress={() => {
                 setProfileOpen(false);
-                navigation.navigate('ProfileEdit');
+                onNavigate('ProfileEdit');
               }}
             >
-              <Ionicons
-                name="person-outline"
-                size={18}
-                color={isDark ? '#E5E7EB' : '#020617'}
-              />
-              <Text
-                style={[
-                  styles.dropdownText,
-                  { color: isDark ? '#E5E7EB' : '#020617' },
-                ]}
-              >
+              <Ionicons name="person-outline" size={18} color={subTextColor} />
+              <Text style={[styles.dropdownText, { color: textColor }]}>
                 Edit Profile
               </Text>
             </TouchableOpacity>
@@ -236,22 +180,14 @@ const SuperAdminNavbar = () => {
               style={styles.dropdownItem}
               onPress={() => {
                 setProfileOpen(false);
-                navigation.navigate('Settings');
+                onNavigate('Settings');
               }}
             >
-              <Ionicons
-                name="settings-outline"
-                size={18}
-                color={isDark ? '#E5E7EB' : '#020617'}
-              />
-              <Text
-                style={[
-                  styles.dropdownText,
-                  { color: isDark ? '#E5E7EB' : '#020617' },
-                ]}
-              >
+              <Ionicons name="settings-outline" size={18} color={subTextColor} />
+              <Text style={[styles.dropdownText, { color: textColor }]}>
                 Settings
               </Text>
+
             </TouchableOpacity>
 
             <View style={styles.divider} />
@@ -296,15 +232,12 @@ const styles = StyleSheet.create({
   },
 
   iconBtn: {
-    height: 40,
     width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
+
   userBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -315,6 +248,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     fontSize: 14,
     fontWeight: '600',
+    color: '#FFFFFF',
     maxWidth: 100,
   },
 
@@ -327,7 +261,7 @@ const styles = StyleSheet.create({
 
   dropdown: {
     position: 'absolute',
-    top: HEADER_HEIGHT + TOP_PADDING + 6,
+    top: NAVBAR_HEIGHT + 6,
     right: 12,
     width: 220,
     borderRadius: 14,
@@ -342,12 +276,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     marginBottom: 6,
   },
+
   dropdownItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     paddingHorizontal: 14,
   },
+
   dropdownText: {
     marginLeft: 10,
     fontSize: 14,

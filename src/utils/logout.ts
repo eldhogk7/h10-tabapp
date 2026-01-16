@@ -1,15 +1,14 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { STORAGE_KEYS } from "./constants";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from './constants';
 
-export const logout = async (navigation: any) => {
+/**
+ * Clears authentication data only.
+ * Navigation MUST be handled by the calling component.
+ */
+export const logout = async () => {
   await AsyncStorage.multiRemove([
     STORAGE_KEYS.TOKEN,
     STORAGE_KEYS.ROLE,
     STORAGE_KEYS.USER_NAME,
   ]);
-
-  navigation.reset({
-    index: 0,
-    routes: [{ name: "Login" }],
-  });
 };

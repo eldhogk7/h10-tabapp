@@ -1,4 +1,3 @@
-// src/screens/Auth/LoginScreen.tsx
 import React, { useState, useEffect, useRef } from "react";
 import {
   View,
@@ -286,13 +285,13 @@ const styles = StyleSheet.create({
 root: {
   flex: 1,
   justifyContent: "center",
-  alignItems: "center", // ⭐ centers the card horizontally
+  alignItems: "center",
   paddingHorizontal: 24,
 },
 
 card: {
   width: "100%",
-  maxWidth: 420,          // ⭐ fixes login box size (like web form)
+  maxWidth: 420,
   backgroundColor: "rgba(255,255,255,0.08)",
   padding: 26,
   borderRadius: 14,

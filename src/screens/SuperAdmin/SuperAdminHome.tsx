@@ -1,91 +1,113 @@
 import React, { useState } from 'react';
-import {
-  View,
-  StyleSheet,
-  Pressable,
-  StatusBar,
-  Platform,
-} from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import SidebarSuperAdmin from '../../components/Sidebar/SidebarSuperAdmin';
+import SidebarSuperAdmin, {
+  ScreenType,
+} from '../../components/Sidebar/SidebarSuperAdmin';
 import SuperAdminNavbar from '../../components/Navbar/SuperAdminNavbar';
-import { useTheme } from '../../components/context/ThemeContext';
 
 /* ===== SCREENS ===== */
-import Dashboard from './Dashboard';
 import CreateClub from './CreateClub';
-import CreateCoach from './CreateCoach';
-import ClubsList from './ClubsList';
+import ClubManagementScreen from './ClubManagementScreen';
 import PodManagementScreen from './PodManagementScreen';
-
-import { ScreenType } from '../../components/Sidebar/SidebarSuperAdmin';
-
-/* ===== CONSTANTS ===== */
-const NAVBAR_HEIGHT = 56;
-const STATUS_BAR_HEIGHT =
-  Platform.OS === 'android' ? StatusBar.currentHeight || 0 : 0;
-
-const DRAWER_WIDTH = 260;
+import PodholderManagementScreen from './PodholderManagementScreen';
+import SettingsScreen from './SettingsScreen';
+import ProfileEditScreen from './ProfileEditScreen';
+import DashboardScreen from './DashboardScreen';
+import PaymentScreen from './PaymentScreen';
+import SupportTicketsScreen from './SupportTicketsScreen';
 
 const SuperAdminHome = () => {
-  const { theme } = useTheme();
-
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeScreen, setActiveScreen] =
     useState<ScreenType>('Dashboard');
-    useState<ScreenType>('PodManagement');
 
   const [collapsed, setCollapsed] = useState(false);
-  const toggleSidebar = () => setSidebarOpen(prev => !prev);
+  const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
-  /* ===== SCREEN RENDERER ===== */
   const renderScreen = () => {
     switch (activeScreen) {
+      case 'Dashboard':
+        return <DashboardScreen onNavigate={setActiveScreen} />;
+
+      case 'ClubManagement':
+        return (
+          <ClubManagementScreen
+            openCreateClub={() => setActiveScreen('CreateClub')}
+          />
+        );
+
       case 'CreateClub':
-        return <CreateClub />;
+        return (
+          <CreateClub
+            goBack={() => setActiveScreen('ClubManagement')}
+          />
+        );
+
+      case 'PodholderManagement':
+        return <PodholderManagementScreen />;
+
       case 'PodManagement':
         return <PodManagementScreen />;
 
-      case 'CreateCoach':
-        return <CreateCoach />;
-      case 'Clubs':
-        return <ClubsList />;
+      case 'Payment':
+        return <PaymentScreen />;
 
-      case 'Dashboard':
+      case 'SupportTickets':
+        return <SupportTicketsScreen />;
+
+      case 'Settings':
+        return (
+          <SettingsScreen
+            goBack={() => setActiveScreen('Dashboard')}
+          />
+        );
+
+      case 'ProfileEdit':
+        return (
+          <ProfileEditScreen
+            goBack={() => setActiveScreen('Dashboard')}
+            onProfileUpdated={() =>
+              setProfileRefreshKey(v => v + 1)
+            }
+          />
+        );
+
       default:
-        return <Dashboard />;
+        return <DashboardScreen onNavigate={setActiveScreen} />;
     }
   };
 
   return (
-    <View style={styles.root}>
-      {/* STATUS BAR */}
-      <StatusBar translucent backgroundColor="transparent" />
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.root}>
+        {/* ===== NAVBAR ===== */}
+        <View style={styles.navbarWrapper}>
+          <SuperAdminNavbar
+            key={profileRefreshKey}
+            toggleSidebar={() => setCollapsed(v => !v)}
+            onNavigate={setActiveScreen}
+            profileRefreshKey={profileRefreshKey}
+          />
+        </View>
 
-      {/* NAVBAR */}
-      <View style={styles.navbarWrapper}>
-        <SuperAdminNavbar />
-      </View>
-
-      {/* BODY */}
-      <View style={styles.body}>
-        {/* SIDEBAR */}
-        <View style={styles.sidebarWrapper}>
+        {/* ===== BODY ===== */}
+        <View style={styles.body}>
+          {/* ===== SIDEBAR ===== */}
           <SidebarSuperAdmin
             active={activeScreen}
             setActive={setActiveScreen}
             collapsed={collapsed}
             toggleSidebar={() => setCollapsed(v => !v)}
           />
-        </View>
 
-        {/* CONTENT */}
-        <View style={styles.content}>
-          {renderScreen()}
+          {/* ===== CONTENT ===== */}
+          <View style={styles.content}>
+            {renderScreen()}
+          </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -93,28 +115,24 @@ export default SuperAdminHome;
 
 /* ===== STYLES ===== */
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: '#2F343B',
+  },
   root: {
     flex: 1,
     backgroundColor: '#F1F5F9',
   },
-
   navbarWrapper: {
-    height: NAVBAR_HEIGHT + STATUS_BAR_HEIGHT,
-    zIndex: 100,
+    height: 56,
+    zIndex: 10,
   },
-
   body: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#F1F5F9',
   },
-
-  sidebarWrapper: {
-    backgroundColor: '#000000',
-  },
-
   content: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#F8FAFC',
   },
 });

@@ -5,6 +5,7 @@ import React, {
   useRef,
 } from 'react';
 
+
 import {
   View,
   Text,
@@ -17,6 +18,7 @@ import {
   useWindowDimensions,
   UIManager,
   findNodeHandle,
+  Dimensions ,
 } from 'react-native';
 
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -30,7 +32,7 @@ import { updatePodStatus } from '../../api/pods';
 
 /* ================= TYPES ================= */
 
-type PodStatus = 'ALL' | 'ACTIVE' | 'ASSIGNED' | 'MAINTENANCE' | 'DAMAGED' | 'LOST';
+type PodStatus = 'ALL' | 'ACTIVE' | 'ASSIGNED' | 'MAINTENANCE' | 'DAMAGED' | 'LOST' | 'REPAIRED';
 
 type Pod = {
   id: string;
@@ -42,7 +44,7 @@ type Pod = {
 
 
 /* ================= PAGINATION (ADDED) ================= */
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 9;
 
 
 /* ================= COLORS ================= */
@@ -64,7 +66,6 @@ const COLORS = {
   },
 };
 
-// ✅ Used ONLY for top filter dropdown
 const FILTER_STATUS_OPTIONS: PodStatus[] = [
   'ALL',
   'ACTIVE',
@@ -72,15 +73,17 @@ const FILTER_STATUS_OPTIONS: PodStatus[] = [
   'MAINTENANCE',
   'DAMAGED',
   'LOST',
+  'REPAIRED',
 ];
 
-// ✅ Used ONLY for row status edit (NO ALL)
+
 const ROW_STATUS_OPTIONS: Exclude<PodStatus, 'ALL'>[] = [
   'ACTIVE',
   'ASSIGNED',
   'MAINTENANCE',
   'DAMAGED',
   'LOST',
+  'REPAIRED',
 ];
 
 
@@ -116,6 +119,9 @@ const PodManagementScreen = () => {
   const [batchOpen, setBatchOpen] = useState(false);
   const [batchSearch, setBatchSearch] = useState('');
 
+  const [rowMenuOpen, setRowMenuOpen] = useState(false);
+  const [rowMenuPos, setRowMenuPos] = useState({ x: 0, y: 0 });
+  const [selectedPod, setSelectedPod] = useState<Pod | null>(null);
 
   const [statusFilter, setStatusFilter] = useState<PodStatus>('ALL');
   const [filterOpen, setFilterOpen] = useState(false);
@@ -197,7 +203,7 @@ const PodManagementScreen = () => {
       .sort((a, b) => {
         const aNum = Number(a.serial.replace('PD', ''));
         const bNum = Number(b.serial.replace('PD', ''));
-        return aNum - bNum; // ✅ ASCENDING
+        return aNum - bNum;
       });
   }, [pods, selectedBatch, statusFilter, search]);
 
@@ -232,474 +238,545 @@ const PodManagementScreen = () => {
       MAINTENANCE: pods.filter(p => p.status === 'MAINTENANCE').length,
       DAMAGED: pods.filter(p => p.status === 'DAMAGED').length,
       LOST: pods.filter(p => p.status === 'LOST').length,
+      REPAIRED: pods.filter(p => p.status === 'REPAIRED').length,
     }),
     [pods],
   );
 
+
   return (
-    <>
-      {/* ✅ NEW: BACKGROUND BLOCKER (INSIDE HEADER) */}
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      {/* ================= FIXED CONTENT ================= */}
 
+      <View style={{ padding: 16 }}>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Pod Management
+          </Text>
 
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              onPress={() => downloadPods(filteredPods)}
+              style={styles.iconBtn}
+            >
+              <Ionicons name="download-outline" size={24} color={colors.text} />
+            </TouchableOpacity>
 
+            <TouchableOpacity
+              style={styles.registerBtn}
+              onPress={() => setOpen(true)}
+            >
+              <Text style={styles.registerText}>Register</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
 
-
-
-
-     <FlatList
-       data={paginatedPods}
-       keyExtractor={item => item.id}
-       keyboardShouldPersistTaps="handled"
-
-       // 🔥 IMPORTANT FIX
-       removeClippedSubviews={false}
-
-       style={{
-         backgroundColor: colors.bg,
-         flex: 1,
-       }}
-
-       contentContainerStyle={{
-         padding: 16,
-         paddingBottom: 80,
-         width: '100%',          // ✅ fill available space
-         alignSelf: 'flex-start' // ✅ prevent centering
-       }}
-
-
-
-        ListHeaderComponent={
-          <>
-            {/* ================= HEADER ================= */}
-            <View style={styles.header}>
-              <Text style={[styles.title, { color: colors.text }]}>
-                Pod Management
+        {/* COUNT CARDS */}
+        <View style={styles.cards}>
+          {[
+            { k: 'ACTIVE', v: counts.ACTIVE, c: '#22C55E' },
+            { k: 'MAINTENANCE', v: counts.MAINTENANCE, c: '#F97316' },
+            { k: 'DAMAGED', v: counts.DAMAGED, c: '#EF4444' },
+            { k: 'LOST', v: counts.LOST, c: '#6B7280' },
+          ].map(s => (
+            <View
+              key={s.k}
+              style={[
+                styles.card,
+                { backgroundColor: colors.card, borderColor: colors.border },
+              ]}
+            >
+              <Text style={{ color: s.c, fontSize: 18, fontWeight: '700' }}>
+                {s.v}
               </Text>
-
-              <View style={styles.headerActions}>
-               <TouchableOpacity
-                 onPress={() => downloadPods(filteredPods)}
-                 style={styles.iconBtn}
-               >
-                 <Ionicons
-                   name="download-outline"
-                   size={24}
-                   color={colors.text}
-                 />
-               </TouchableOpacity>
-
-
-                <TouchableOpacity
-                  style={styles.registerBtn}
-                  onPress={() => setOpen(true)}
-                >
-                  <Text style={styles.registerText}>Register</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={{ color: colors.text }}>{s.k}</Text>
             </View>
+          ))}
+        </View>
 
-            {/* ================= COUNT BOXES ================= */}
-            <View style={styles.cards}>
-              {[
-                { k: 'ACTIVE', v: counts.ACTIVE, c: '#22C55E' },
-                { k: 'MAINTENANCE', v: counts.MAINTENANCE, c: '#F97316' },
-                { k: 'DAMAGED', v: counts.DAMAGED, c: '#EF4444' },
-                { k: 'LOST', v: counts.LOST, c: '#6B7280' },
-              ].map(s => (
-                <View
-                  key={s.k}
-                  style={[
-                    styles.card,
-                    { backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                >
-                  <Text style={{ color: s.c, fontSize: 18, fontWeight: '700' }}>
-                    {s.v}
-                  </Text>
-                  <Text style={{ color: colors.text }}>{s.k}</Text>
-                </View>
-              ))}
-            </View>
+        {/* ================= SEARCH | BATCH | STATUS ================= */}
+                   <View style={{ marginBottom: -13 }}>
 
+                     <View style={{ flexDirection: 'row', gap: 12 }}>
 
-            {/* ================= SEARCH | BATCH | STATUS ================= */}
-            <View style={{ marginBottom: 12 }}>
+                       {/* SEARCH */}
+                       <View
+                         style={[
+                           styles.searchBox,
+                           { flex: 2, backgroundColor: colors.card, borderColor: colors.border },
+                         ]}
+                       >
+                         <Ionicons name="search-outline" size={18} color={colors.muted} />
+                         <TextInput
+                           placeholder="Search pods"
+                           placeholderTextColor={colors.muted}
+                           value={search}
+                           onChangeText={setSearch}
+                           style={[styles.searchInput, { color: colors.text }]}
+                         />
+                       </View>
 
-              <View style={{ flexDirection: 'row', gap: 12 }}>
-
-                {/* SEARCH */}
-                <View
-                  style={[
-                    styles.searchBox,
-                    { flex: 2, backgroundColor: colors.card, borderColor: colors.border },
-                  ]}
-                >
-                  <Ionicons name="search-outline" size={18} color={colors.muted} />
-                  <TextInput
-                    placeholder="Search pods"
-                    placeholderTextColor={colors.muted}
-                    value={search}
-                    onChangeText={setSearch}
-                    style={[styles.searchInput, { color: colors.text }]}
-                  />
-                </View>
-
-                {/* BATCH BUTTON */}
-               <View style={{ flex: 1 }} ref={batchBtnRef}>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.searchBox,
-                      { backgroundColor: colors.card, borderColor: colors.border },
-                    ]}
-                    onPress={() => {
-                      measure(batchBtnRef, setBatchPos);
-                      setBatchOpen(true);
-                      setFilterOpen(false);
-                    }}
+                       {/* BATCH BUTTON */}
+                      <View style={{ flex: 1 }} ref={batchBtnRef}>
+                        <TouchableOpacity
+                          style={[
+                            styles.searchBox,
+                            { backgroundColor: colors.card, borderColor: colors.border },
+                          ]}
+                          onPress={() => {
+                            measure(batchBtnRef, setBatchPos);
+                            setBatchOpen(true);
+                            setFilterOpen(false);
+                          }}
+                        >
+                          <Ionicons name="layers-outline" size={18} color={colors.muted} />
+                          <Text style={{ marginLeft: 8, color: colors.text, flex: 1 }}>
+                            {selectedBatch === 'ALL' ? 'All Batches' : selectedBatch}
+                          </Text>
+                          <Ionicons name="chevron-down" size={18} color={colors.text} />
+                        </TouchableOpacity>
+                      </View>
 
 
-                  >
-                    <Ionicons name="layers-outline" size={18} color={colors.muted} />
-                    <Text style={{ marginLeft: 8, color: colors.text, flex: 1 }}>
-                      {selectedBatch === 'ALL' ? 'All Batches' : selectedBatch}
-                    </Text>
-                    <Ionicons name="chevron-down" size={18} color={colors.text} />
-                  </TouchableOpacity>
-                </View>
+                       {/* STATUS BUTTON */}
+                       <View style={{ flex: 1 }} ref={statusBtnRef}>
 
-                {/* STATUS BUTTON */}
-                <View style={{ flex: 1 }} ref={statusBtnRef}>
+                         <TouchableOpacity
+                           style={[
+                             styles.searchBox,
+                             { backgroundColor: colors.card, borderColor: colors.border },
+                           ]}
+                           onPress={() => {
+                             measure(statusBtnRef, setStatusPos);
+                             setFilterOpen(true);
+                             setBatchOpen(false);
+                           }}
 
-                  <TouchableOpacity
-                    style={[
-                      styles.searchBox,
-                      { backgroundColor: colors.card, borderColor: colors.border },
-                    ]}
-                    onPress={() => {
-                      measure(statusBtnRef, setStatusPos);
-                      setFilterOpen(true);
-                      setBatchOpen(false);
-                    }}
+                         >
+                           <Ionicons name="filter-outline" size={18} color={colors.muted} />
+                           <Text style={{ marginLeft: 8, color: colors.text, flex: 1 }}>
+                             {statusFilter}
+                           </Text>
+                           <Ionicons name="chevron-down" size={18} color={colors.text} />
+                         </TouchableOpacity>
+                       </View>
 
-                  >
-                    <Ionicons name="filter-outline" size={18} color={colors.muted} />
-                    <Text style={{ marginLeft: 8, color: colors.text, flex: 1 }}>
-                      {statusFilter}
-                    </Text>
-                    <Ionicons name="chevron-down" size={18} color={colors.text} />
-                  </TouchableOpacity>
-                </View>
+                     </View>
+                   </View>
 
-              </View>
-            </View>
+                   {/* ================= BATCH MODAL ================= */}
+                   <Modal visible={batchOpen} transparent animationType="fade">
+                     <TouchableOpacity
+                       style={{ flex: 1 }}
+                       activeOpacity={1}
+                       onPress={() => setBatchOpen(false)}
+                     />
 
-            {/* ================= BATCH MODAL ================= */}
-            <Modal visible={batchOpen} transparent animationType="fade">
-              <TouchableOpacity
-                style={{ flex: 1 }}
-                activeOpacity={1}
-                onPress={() => setBatchOpen(false)}
-              />
+                     <View
+                       style={{
+                         position: 'absolute',
+                         top: batchPos.y + 44,
+                         left: batchPos.x,
+                         width: batchPos.w,
+                         maxHeight: 260,
+                         backgroundColor: colors.card,
+                         borderRadius: 10,
+                         borderWidth: 1,
+                         borderColor: colors.border,
+                         elevation: 40,
+                       }}
+                     >
 
-              <View
-                style={{
-                  position: 'absolute',
-                  top: batchPos.y + 44,
-                  left: batchPos.x,
-                  width: batchPos.w,
-                  maxHeight: 260,
-                  backgroundColor: colors.card,
-                  borderRadius: 10,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  elevation: 40,
-                }}
-              >
+                       <TextInput
+                         placeholder="Search batch"
+                         placeholderTextColor={colors.muted}
+                         value={batchSearch}
+                         onChangeText={setBatchSearch}
+                         style={{
+                           padding: 12,
+                           color: colors.text,
+                           borderBottomWidth: 1,
+                           borderColor: colors.border,
+                         }}
+                       />
 
-                <TextInput
-                  placeholder="Search batch"
-                  placeholderTextColor={colors.muted}
-                  value={batchSearch}
-                  onChangeText={setBatchSearch}
-                  style={{
-                    padding: 12,
-                    color: colors.text,
-                    borderBottomWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                />
+                       <ScrollView keyboardShouldPersistTaps="handled">
+                         {filteredBatches.map(b => (
+                           <TouchableOpacity
+                             key={b}
+                             style={{ padding: 12 }}
+                             onPress={() => {
+                               setSelectedBatch(b);
+                               setBatchOpen(false);
+                               setBatchSearch('');
+                               setPage(1);
+                             }}
+                           >
+                             <Text style={{ color: colors.text }}>
+                               {b === 'ALL' ? 'All Batches' : b}
+                             </Text>
+                           </TouchableOpacity>
+                         ))}
+                       </ScrollView>
+                     </View>
+                   </Modal>
 
-                <ScrollView keyboardShouldPersistTaps="handled">
-                  {filteredBatches.map(b => (
+
+                   {/* ================= ROW EDIT STATUS MODAL ================= */}
+                   <Modal visible={rowMenuOpen} transparent animationType="fade">
+                     <TouchableOpacity
+                       style={{ flex: 1 }}
+                       activeOpacity={1}
+                       onPress={() => {
+                         setRowMenuOpen(false);
+                         setSelectedPod(null);
+                       }}
+                     />
+
+                     {(() => {
+                       const MENU_HEIGHT = 260;
+                       const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+                       const openUpwards =
+                         rowMenuPos.y + MENU_HEIGHT > SCREEN_HEIGHT;
+
+                       return (
+                         <View
+                           style={{
+                             position: 'absolute',
+                             top: openUpwards
+                               ? rowMenuPos.y - MENU_HEIGHT
+                               : rowMenuPos.y + 4,
+                             left: Math.max(12, rowMenuPos.x - 140),
+                             width: 160,
+                             backgroundColor: colors.card,
+                             borderRadius: 10,
+                             borderWidth: 1,
+                             borderColor: colors.border,
+                             elevation: 100,
+                           }}
+                         >
+                           {ROW_STATUS_OPTIONS
+                             .filter(status => status !== selectedPod?.status)
+                             .map(status => (
+                               <TouchableOpacity
+                                 key={status}
+                                 style={{ padding: 12 }}
+                                 onPress={() => {
+                                   if (!selectedPod) return;
+
+                                   setPendingChange({
+                                     podId: selectedPod.id,
+                                     oldStatus: selectedPod.status,
+                                     newStatus: status,
+                                   });
+
+                                   setRowMenuOpen(false);
+                                   setConfirmOpen(true);
+                                 }}
+                               >
+                                 <Text style={styles[`status_${status}`]}>
+                                   {status}
+                                 </Text>
+                               </TouchableOpacity>
+                             ))}
+                         </View>
+                       );
+                     })()}
+
+                   </Modal>
+
+
+                  {/* ================= TOP STATUS FILTER MODAL ================= */}
+                  <Modal visible={filterOpen} transparent animationType="fade">
                     <TouchableOpacity
-                      key={b}
-                      style={{ padding: 12 }}
-                      onPress={() => {
-                        setSelectedBatch(b);
-                        setBatchOpen(false);
-                        setBatchSearch('');
-                        setPage(1);
+                      style={{ flex: 1 }}
+                      activeOpacity={1}
+                      onPress={() => setFilterOpen(false)}
+                    />
+
+                    <View
+                      style={{
+                        position: 'absolute',
+                        top: statusPos.y + 44,
+                        left: statusPos.x,
+                        width: statusPos.w,
+                        backgroundColor: colors.card,
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: colors.border,
+                        elevation: 40,
                       }}
                     >
-                      <Text style={{ color: colors.text }}>
-                        {b === 'ALL' ? 'All Batches' : b}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            </Modal>
-
-            {/* ================= STATUS MODAL ================= */}
-            <Modal visible={filterOpen} transparent animationType="fade">
-              <TouchableOpacity
-                style={{ flex: 1 }}
-                activeOpacity={1}
-                onPress={() => setFilterOpen(false)}
-              />
-
-              <View
-                style={{
-                  position: 'absolute',
-                  top: statusPos.y + 44,
-                  left: statusPos.x,
-                  width: statusPos.w,
-                  backgroundColor: colors.card,
-                  borderRadius: 10,
-                  borderWidth: 1,
-                  borderColor: colors.border,
-                  elevation: 40,
-                }}
-              >
-
-                {FILTER_STATUS_OPTIONS.map(s => (
-                  <TouchableOpacity
-                    key={s}
-                    style={{
-                      padding: 12,
-                      backgroundColor:
-                        statusFilter === s ? '#2563EB22' : 'transparent',
-                    }}
-                    onPress={() => {
-                      setStatusFilter(s);
-                      setFilterOpen(false);
-                      setPage(1);
-                    }}
-                  >
-                    <Text style={{ color: colors.text }}>{s}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </Modal>
-
-            <Modal visible={confirmOpen} transparent animationType="fade">
-              <View
-                style={{
-                  flex: 1,
-                  backgroundColor: 'rgba(0,0,0,0.4)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <View
-                  style={{
-                    width: 320,
-                    backgroundColor: colors.card,
-                    borderRadius: 12,
-                    padding: 20,
-                    borderWidth: 1,
-                    borderColor: colors.border,
-                  }}
-                >
-                  <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>
-                    Confirm Status Change
-                  </Text>
-
-                  <Text style={{ marginTop: 10, color: colors.muted }}>
-                    Change status to <Text style={{ fontWeight: '700' }}>
-                      {pendingChange?.newStatus}
-                    </Text>?
-                  </Text>
-
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      justifyContent: 'flex-end',
-                      gap: 12,
-                      marginTop: 20,
-                    }}
-                  >
-                    {/* CANCEL */}
-                    <TouchableOpacity
-                      onPress={() => {
-                        setConfirmOpen(false);
-                        setPendingChange(null);
-                      }}
-                    >
-                      <Text style={{ color: colors.muted }}>Cancel</Text>
-                    </TouchableOpacity>
-
-                    {/* CONFIRM */}
-                    <TouchableOpacity
-                      onPress={async () => {
-                        if (!pendingChange) return;
-
-                        const { podId, newStatus, oldStatus } = pendingChange;
-
-                        // Optimistic UI
-                        setPods(prev =>
-                          prev.map(p =>
-                            p.id === podId ? { ...p, status: newStatus } : p,
-                          ),
-                        );
-
-                        setConfirmOpen(false);
-                        setEditingPodId(null);
-                        setPendingChange(null);
-
-                        try {
-                          await updatePodStatus(podId, newStatus);
-                        } catch {
-                          // rollback
-                          setPods(prev =>
-                            prev.map(p =>
-                              p.id === podId ? { ...p, status: oldStatus } : p,
-                            ),
-                          );
-                          alert('Status update failed');
-                        }
-                      }}
-                    >
-                      <Text style={{ color: '#2563EB', fontWeight: '700' }}>
-                        Confirm
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              </View>
-            </Modal>
+                      {FILTER_STATUS_OPTIONS.map(s => (
+                        <TouchableOpacity
+                          key={s}
+                          style={{
+                            padding: 12,
+                            backgroundColor:
+                              statusFilter === s ? '#2563EB22' : 'transparent',
+                          }}
+                          onPress={() => {
+                            setStatusFilter(s);
+                            setFilterOpen(false);
+                            setPage(1);
+                          }}
+                        >
+                          <Text style={{ color: colors.text }}>{s}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </Modal>
 
 
-            {/* ================= TABLE HEADER ================= */}
-            {isTablet && (
-              <View style={[styles.tableHeader, { borderColor: colors.border }]}>
-                <Text style={[styles.colSno, styles.th, { color: colors.text }]}>
-                  S.No
-                </Text>
-                <Text style={[styles.colSerial, styles.th, { color: colors.text }]}>
-                  Serial
-                </Text>
-                <Text style={[styles.colDevice, styles.th, { color: colors.text }]}>
-                  Device
-                </Text>
-                <Text style={[styles.colStatus, styles.th, { color: colors.text }]}>
-                  Status
-                </Text>
-              </View>
-            )}
-          </>
-        }
 
 
-        renderItem={({ item, index }) => (
-          <View style={[styles.row, { borderColor: colors.border }]}>
-            {/* SERIAL NUMBER */}
-            <Text style={[styles.colSno, { color: colors.text }]}>
-              {(page - 1) * ITEMS_PER_PAGE + index + 1}
+
+                   <Modal visible={confirmOpen} transparent animationType="fade">
+                     <View
+                       style={{
+                         flex: 1,
+                         backgroundColor: 'rgba(0,0,0,0.4)',
+                         alignItems: 'center',
+                         justifyContent: 'center',
+                       }}
+                     >
+                       <View
+                         style={{
+                           width: 320,
+                           backgroundColor: colors.card,
+                           borderRadius: 12,
+                           padding: 20,
+                           borderWidth: 1,
+                           borderColor: colors.border,
+                         }}
+                       >
+                         <Text style={{ fontSize: 16, fontWeight: '700', color: colors.text }}>
+                           Confirm Status Change
+                         </Text>
+
+                         <Text style={{ marginTop: 10, color: colors.muted }}>
+                           Change status to <Text style={{ fontWeight: '700' }}>
+                             {pendingChange?.newStatus}
+                           </Text>?
+                         </Text>
+
+                         <View
+                           style={{
+                             flexDirection: 'row',
+                             justifyContent: 'flex-end',
+                             gap: 12,
+                             marginTop: 20,
+                           }}
+                         >
+                           {/* CANCEL */}
+                           <TouchableOpacity
+                             onPress={() => {
+                               setConfirmOpen(false);
+                               setPendingChange(null);
+                             }}
+                           >
+                             <Text style={{ color: colors.muted }}>Cancel</Text>
+                           </TouchableOpacity>
+
+                           {/* CONFIRM */}
+                           <TouchableOpacity
+                             onPress={async () => {
+                               if (!pendingChange) return;
+
+                               const { podId, newStatus, oldStatus } = pendingChange;
+
+                               // Optimistic UI
+                               setPods(prev =>
+                                 prev.map(p =>
+                                   p.id === podId ? { ...p, status: newStatus } : p,
+                                 ),
+                               );
+
+                               setConfirmOpen(false);
+                               setEditingPodId(null);
+                               setPendingChange(null);
+
+                               try {
+                                 await updatePodStatus(podId, newStatus);
+                               } catch {
+                                 // rollback
+                                 setPods(prev =>
+                                   prev.map(p =>
+                                     p.id === podId ? { ...p, status: oldStatus } : p,
+                                   ),
+                                 );
+                                 alert('Status update failed');
+                               }
+                             }}
+                           >
+                             <Text style={{ color: '#2563EB', fontWeight: '700' }}>
+                               Confirm
+                             </Text>
+                           </TouchableOpacity>
+                         </View>
+                       </View>
+                     </View>
+                   </Modal>
+      </View>
+
+      {/* ================= ONLY THIS SCROLLS ================= */}
+      <View style={{paddingHorizontal: 16 }}>
+
+        {isTablet && (
+          <View
+            style={[
+              styles.tableHeader,
+              {
+                borderColor: colors.border,
+                backgroundColor: colors.card,
+              },
+            ]}
+          >
+            <Text style={[styles.th, styles.colSno, { color: colors.muted }]}>
+              S.No
             </Text>
 
-            <Text style={[styles.colSerial, { color: colors.text }]}>
-              {item.serial}
+            <Text style={[styles.th, styles.colSerial, { color: colors.muted }]}>
+              Serial
             </Text>
 
-            <Text style={[styles.colDevice, { color: colors.text }]}>
-              {item.deviceId}
+
+            <Text
+              style={[
+                styles.th,
+                styles.colDevice,
+                {
+                  color: colors.muted,
+                  textAlign: 'left',
+                  paddingLeft: 8,
+                },
+              ]}
+            >
+              Device
             </Text>
 
-            <View style={styles.colStatus}>
-              {editingPodId === item.id ? (
-                ROW_STATUS_OPTIONS.map(s => (
-                  <TouchableOpacity
-                    key={s}
-                    onPress={() => {
-                      setPendingChange({
-                        podId: item.id,
-                        newStatus: s,
-                        oldStatus: item.status,
-                      });
-                      setConfirmOpen(true);
-                    }}
 
-
-                  >
-                    <Text style={[styles[`status_${s}`], { marginVertical: 4 }]}>
-                      {s}
-                    </Text>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <TouchableOpacity
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-                  onPress={() => setEditingPodId(item.id)}
-                >
-                  <Text style={styles[`status_${item.status}`]}>
-                    {item.status}
-                  </Text>
-
-                  <Ionicons
-                    name="create-outline"
-                    size={14}
-                    color={colors.muted}
-                  />
-                </TouchableOpacity>
-              )}
-            </View>
+            <Text
+              style={[
+                styles.th,
+                styles.colStatus,
+                {
+                  color: colors.muted,
+                  textAlign: 'left',
+                  paddingLeft: 24,
+                },
+              ]}
+            >
+              Status
+            </Text>
           </View>
         )}
 
 
-        /* ✅ PAGINATION FOOTER */
-        ListFooterComponent={
-          totalPages > 1 ? (
-            <View style={styles.pagination}>
-              <TouchableOpacity
-                disabled={page === 1}
-                onPress={() => setPage(p => Math.max(1, p - 1))}
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={22}
-                  color={page === 1 ? colors.muted : colors.text}
-                />
-              </TouchableOpacity>
 
-              <Text style={{ color: colors.text }}>
-                Page {page} / {totalPages}
+        <FlatList
+          data={paginatedPods}
+          keyExtractor={item => item.id}
+          scrollEnabled={false}
+          keyboardShouldPersistTaps="handled"
+          removeClippedSubviews={false}
+          contentContainerStyle={{ paddingBottom: 80 }}
+          renderItem={({ item, index }) => (
+            <View style={[styles.row, { borderColor: colors.border }]}>
+              <Text style={[styles.colSno, { color: colors.text }]}>
+                {(page - 1) * ITEMS_PER_PAGE + index + 1}
               </Text>
 
-              <TouchableOpacity
-                disabled={page === totalPages}
-                onPress={() => setPage(p => Math.min(totalPages, p + 1))}
-              >
-                <Ionicons
-                  name="chevron-forward"
-                  size={22}
-                  color={page === totalPages ? colors.muted : colors.text}
-                />
-              </TouchableOpacity>
+              <Text style={[styles.colSerial, { color: colors.text }]}>
+                {item.serial}
+              </Text>
+
+              <Text style={[styles.colDevice, { color: colors.text }]}>
+                {item.deviceId}
+              </Text>
+
+              <View style={[styles.colStatus, { alignItems: 'center' }]}>
+                <TouchableOpacity
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
+                  onPress={e => {
+                    e.currentTarget.measureInWindow((x, y, w, h) => {
+                      setRowMenuPos({ x, y: y + h });
+                      setSelectedPod(item);
+                      setRowMenuOpen(true);
+                    });
+                  }}
+                >
+                  <Text style={styles[`status_${item.status}`]}>
+                    {item.status}
+                  </Text>
+                  <Ionicons name="create-outline" size={14} color={colors.muted} />
+                </TouchableOpacity>
+              </View>
+
+
+
+
             </View>
-          ) : null
-        }
-      />
+          )}
+          ListFooterComponent={
+            totalPages > 1 ? (
+              <View style={styles.pagination}>
+                {/* PREVIOUS */}
+                <TouchableOpacity
+                  disabled={page === 1}
+                  onPress={() => setPage(p => Math.max(1, p - 1))}
+                >
+                  <Text
+                    style={{
+                      color: page === 1 ? colors.muted : '#2563EB',
+                      fontWeight: '600',
+                    }}
+                  >
+                    Prev
+                  </Text>
+                </TouchableOpacity>
+
+                {/* PAGE INFO */}
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontWeight: '600',
+                  }}
+                >
+                  Page {page} / {totalPages}
+                </Text>
+
+                {/* NEXT */}
+                <TouchableOpacity
+                  disabled={page === totalPages}
+                  onPress={() => setPage(p => Math.min(totalPages, p + 1))}
+                >
+                  <Text
+                    style={{
+                      color: page === totalPages ? colors.muted : '#2563EB',
+                      fontWeight: '600',
+                    }}
+                  >
+                    Next
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
+          }
+
+        />
+      </View>
 
       <RegisterPodModal
         visible={open}
         onClose={() => setOpen(false)}
         onRegistered={loadPods}
       />
-    </>
+    </View>
   );
+
 };
 
 export default PodManagementScreen;
@@ -878,6 +955,10 @@ iconBtn: {
   },
   status_LOST: {
     color: '#6B7280',
+    fontWeight: '600',
+  },
+  status_REPAIRED: {
+    color: '#14B8A6',
     fontWeight: '600',
   },
 });

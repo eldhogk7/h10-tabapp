@@ -1,4 +1,3 @@
-// src/screens/Auth/AuthLoadingScreen.tsx
 import React, { useEffect } from "react";
 import { View, ActivityIndicator } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -10,12 +9,12 @@ const AuthLoadingScreen = ({ navigation }: any) => {
   useEffect(() => {
     const init = async () => {
       try {
-        // 1️⃣ RESTORE SESSION
+
         const token = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN);
         const role = await AsyncStorage.getItem(STORAGE_KEYS.ROLE);
 
         if (token && role) {
-          // ✅ Already logged in → go home
+
           navigation.reset({
             index: 0,
             routes: [
@@ -31,7 +30,7 @@ const AuthLoadingScreen = ({ navigation }: any) => {
           });
           return;
         }
-        // 2️⃣ NO SESSION → CHECK DB
+
         const res = await api.get("/auth/has-super-admin");
         const exists = res.data?.data?.exists;
 
