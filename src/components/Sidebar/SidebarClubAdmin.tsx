@@ -12,6 +12,7 @@ const COLLAPSED_WIDTH = 64;
 
 export type ScreenType =
   | 'Dashboard'
+  | 'Players'
   | 'Event'
   | 'CreateEvent'
   | 'ImportFromESP32'
@@ -30,6 +31,7 @@ const MENU_ITEMS: {
   { key: 'Cycle', label: 'Cycle', icon: 'sync-outline' },
   { key: 'Advice', label: 'Advice', icon: 'chatbubble-ellipses-outline' },
   { key: 'Report', label: 'Report', icon: 'document-text-outline' },
+  { key: 'Players', label: 'Players', icon: 'people-outline' }
 ];
 
 interface Props {

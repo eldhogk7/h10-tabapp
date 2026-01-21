@@ -12,6 +12,8 @@ import CreateEventScreen from './CreateEventScreen';
 import ImportFromESP32 from './ImportFromESP32';
 import { logout } from '../../utils/logout';
 import { useNavigation } from '@react-navigation/native';
+import PlayersListScreen from './Players/PlayersListScreen';
+import CreatePlayerScreen from './Players/CreatePlayerScreen';
 
 const Screen = ({ title }: { title: string }) => (
   <View style={styles.center}>
@@ -21,27 +23,27 @@ const Screen = ({ title }: { title: string }) => (
 
 const ClubAdminHome = () => {
   const [activeScreen, setActiveScreen] =
-    useState<ScreenType | 'ProfileEdit'>('Dashboard');
+    useState<ScreenType>('Dashboard');
+  const [showProfileEdit, setShowProfileEdit] =
+    useState(false);
   const [importParams, setImportParams] = useState<any>(null);
   const [collapsed, setCollapsed] = useState(false);
   const navigation = useNavigation<any>();
 
-  const handleNavigate = (
-    screen: ScreenType | 'ProfileEdit' | 'Logout'
-  ) => {
-    if (screen === 'Logout') {
+  const handleNavigate = (action: 'ProfileEdit' | 'Logout') => {
+    if (action === 'Logout') {
       (async () => {
         await logout();
-
         navigation.reset({
           index: 0,
           routes: [{ name: 'Login' }],
         });
       })();
-
       return;
     }
-    setActiveScreen(screen);
+    if (action === 'ProfileEdit') {
+      setShowProfileEdit(true);
+    }
   };
 
   const renderScreen = () => {
@@ -75,20 +77,23 @@ const ClubAdminHome = () => {
           />
         );
 
-      case 'ProfileEdit':
+      case 'Players':
         return (
-          <ProfileEditScreen
-            goBack={() => {
-              setActiveScreen('Dashboard');
-            }}
+          <PlayersListScreen
+            openCreate={() => setActiveScreen('CreatePlayer')}
           />
         );
 
+      case 'CreatePlayer':
+        return (
+          <CreatePlayerScreen
+            goBack={() => setActiveScreen('Players')}
+          />
+        );
       default:
         return <Screen title={activeScreen} />;
     }
   };
-
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.root}>
@@ -107,7 +112,15 @@ const ClubAdminHome = () => {
             toggleSidebar={() => setCollapsed(v => !v)}
           />
 
-          <View style={styles.content}>{renderScreen()}</View>
+          <View style={styles.content}>
+            {showProfileEdit ? (
+              <ProfileEditScreen
+                goBack={() => setShowProfileEdit(false)}
+              />
+            ) : (
+              renderScreen()
+            )}
+          </View>
         </View>
       </View>
     </SafeAreaView>
