@@ -20,6 +20,7 @@ export async function importCsvToSQLite(
     location?: string;
     field?: string;
     notes?: string;
+    assignedPlayers?: { player_id: string }[];
   }
 ) {
   /* ================= NORMALIZE CSV ================= */
@@ -108,8 +109,18 @@ export async function importCsvToSQLite(
 
     for (const row of rows) {
       const timestamp = Number(row.timestamp_ms);
-      if (!row.player_id || isNaN(timestamp)) continue;
+      const playerIdFromPod = Number(row.player_id);
+
+      if (!playerIdFromPod || isNaN(timestamp)) continue;
       if (timestamp < absStart || timestamp > absEnd) continue;
+
+      // ❌ SKIP UNASSIGNED PLAYERS (FILE-SPECIFIC)
+      if (
+        assignedPlayerIds.size > 0 &&
+        !assignedPlayerIds.has(playerIdFromPod)
+      ) {
+        continue;
+      }
 
       await db.execute(
         `

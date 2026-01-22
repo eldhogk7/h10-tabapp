@@ -14,7 +14,7 @@ import { logout } from '../../utils/logout';
 import { useNavigation } from '@react-navigation/native';
 import PlayersListScreen from './Players/PlayersListScreen';
 import CreatePlayerScreen from './Players/CreatePlayerScreen';
-
+import AssignPlayersForSessionScreen from '../events/AssignPlayersForSessionScreen';
 const Screen = ({ title }: { title: string }) => (
   <View style={styles.center}>
     <Text style={{ fontSize: 20, fontWeight: '700' }}>{title}</Text>
@@ -64,16 +64,27 @@ const ClubAdminHome = () => {
             goBack={() => setActiveScreen('Event')}
             goNext={(params) => {
               setImportParams(params);
+              setActiveScreen('AssignPlayers');
+            }}
+          />
+        );
+      case 'AssignPlayers':
+        return (
+          <AssignPlayersForSessionScreen
+            sessionId={importParams.file.replace('.csv', '')}
+            eventDraft={importParams.eventDraft}
+            goBack={() => setActiveScreen('CreateEvent')}
+            goNext={(params) => {
+              setImportParams(params);
               setActiveScreen('ImportFromESP32');
             }}
           />
         );
-
       case 'ImportFromESP32':
         return (
           <ImportFromESP32
             {...importParams}
-            goBack={() => setActiveScreen('CreateEvent')}
+            goBack={() => setActiveScreen('AssignPlayers')}
           />
         );
 

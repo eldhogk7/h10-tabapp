@@ -16,6 +16,8 @@ import { calculateMetricsFromRaw } from "../../services/calculateMetrics.service
 import { exportTrimmedCsv } from "../../services/exportCsv.service";
 import { debugDatabase } from "../../services/debug.service";
 import { safeAlert } from "../../services/safeAlert.service";
+import { getAssignedPlayersForSession } from "../../services/sessionPlayer.service";
+import { ScrollView } from "react-native";
 
 /* ================= TIME HELPERS ================= */
 
@@ -62,6 +64,7 @@ export default function ImportFromESP32({
 
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [sessionPlayers, setSessionPlayers] = useState<any[]>([]);
 
   /* =====================================================
      🔧 FIXED: derived from props instead of route.params
@@ -77,6 +80,15 @@ export default function ImportFromESP32({
       loadFiles(); // load file list if NOT coming from event
     }
   }, [file]);
+
+  useEffect(() => {
+    if (!selected) return;
+
+    const sessionId = selected.replace(".csv", "");
+    const players = getAssignedPlayersForSession(sessionId);
+
+    setSessionPlayers(players);
+  }, [selected]);
 
   useEffect(() => {
     return () => {
@@ -131,12 +143,17 @@ export default function ImportFromESP32({
       const sessionId = selected.replace(".csv", "");
       const csvText = await downloadCsv(selected);
 
+      const assignedPlayers = getAssignedPlayersForSession(sessionId);
+
       await importCsvToSQLite(
         csvText,
         sessionId,
         trimStartMs,
         trimEndMs,
-        eventDraft || undefined
+        {
+          ...eventDraft,
+          assignedPlayers, // 🔑 CRITICAL
+        }
       );
 
       await calculateMetricsFromRaw(sessionId);
@@ -172,8 +189,11 @@ export default function ImportFromESP32({
 
   return (
     <View style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
       <View style={styles.box}>
-
         {/* 🔧 FIXED: back navigation via props */}
         <TouchableOpacity onPress={goBack} style={{ marginBottom: 12 }}>
           <Text style={{ color: "#0284c7", fontWeight: "700" }}>← Back</Text>
@@ -206,6 +226,40 @@ export default function ImportFromESP32({
             <Text style={styles.eventField}>
               Notes: {eventDraft.notes || "—"}
             </Text>
+          </View>
+        )}
+
+        {sessionPlayers.length > 0 && (
+          <View style={styles.playersBox}>
+            <Text style={styles.eventTitle}>Players (This Session)</Text>
+
+            {sessionPlayers.map(p => (
+              <View
+                key={p.player_id}
+                style={[
+                  styles.playerRow,
+                  !p.assigned && styles.playerUnassigned,
+                ]}
+              >
+                <Text style={styles.playerName}>
+                  {p.player_name}
+                  {p.jersey_number != null && `  #${p.jersey_number}`}
+                </Text>
+
+                <Text style={styles.playerMeta}>
+                  {p.position || "—"} • Pod: {p.pod_serial || "Unassigned"}
+                </Text>
+
+                <Text
+                  style={{
+                    fontWeight: "700",
+                    color: p.assigned ? "#16A34A" : "#DC2626",
+                  }}
+                >
+                  {p.assigned ? "PLAYING" : "NOT PLAYING"}
+                </Text>
+              </View>
+            ))}
           </View>
         )}
 
@@ -268,7 +322,7 @@ export default function ImportFromESP32({
           </>
         )}
       </View>
-
+      </ScrollView>
       {importedSession && (
         <TouchableOpacity style={styles.downloadBtn} onPress={downloadTrimmed}>
           <Text style={styles.downloadText}>DOWNLOAD TRIMMED CSV</Text>
@@ -345,5 +399,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 4,
     color: "#334155",
+  },
+  playersBox: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+  },
+
+  playerRow: {
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+
+  playerUnassigned: {
+    opacity: 0.5,
+  },
+
+  playerName: {
+    fontWeight: "700",
+    fontSize: 14,
+  },
+
+  playerMeta: {
+    fontSize: 12,
+    color: "#475569",
+    marginTop: 2,
+  },
+  scrollContent: {
+    paddingBottom: 120,
   },
 });

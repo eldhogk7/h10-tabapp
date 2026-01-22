@@ -15,6 +15,7 @@ export type ScreenType =
   | 'Players'
   | 'Event'
   | 'CreateEvent'
+  | 'AssignPlayers'
   | 'ImportFromESP32'
   | 'Compare'
   | 'Cycle'

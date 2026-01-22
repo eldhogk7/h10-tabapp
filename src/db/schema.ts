@@ -23,6 +23,18 @@ export function initDB() {
     try { db.execute(`ALTER TABLE players ADD COLUMN club_name TEXT`); } catch {}
     try { db.execute(`ALTER TABLE players ADD COLUMN updated_at INTEGER`); } catch {}
 
+    /* ================= SESSION PLAYER ASSIGNMENTS (FILE-SCOPED) ================= */
+
+    db.execute(`
+      CREATE TABLE IF NOT EXISTS session_players (
+        session_id TEXT,
+        player_id TEXT,
+        assigned INTEGER, -- 1 = participating, 0 = not participating
+
+        PRIMARY KEY (session_id, player_id)
+      );
+    `);
+
     /* ================= RAW SENSOR DATA ================= */
 
     db.execute(`

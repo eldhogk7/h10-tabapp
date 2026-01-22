@@ -161,6 +161,7 @@ export default function CreateEventScreen({
     }
 
     goNext({
+      step: "AssignPlayers",
       file: selectedFile,
       eventDraft: {
         eventName,
@@ -386,7 +387,12 @@ export default function CreateEventScreen({
 
 
       {/* ===== DATE MODAL ===== */}
-      <Modal visible={datePickerOpen} transparent>
+      <Modal
+        visible={datePickerOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDatePickerOpen(false)}
+      >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Calendar
@@ -643,6 +649,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderRadius: 14,
     padding: 12,
+    minHeight: 360,
   },
 
   selectedFile: {
