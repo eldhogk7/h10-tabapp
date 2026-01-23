@@ -35,6 +35,18 @@ export function initDB() {
       );
     `);
 
+    /* ================= SESSION POD OVERRIDES (FILE-SCOPED) ================= */
+
+    db.execute(`
+      CREATE TABLE IF NOT EXISTS session_pod_overrides (
+        session_id TEXT,
+        pod_serial TEXT,
+        player_id TEXT NULL, -- NULL = pod disabled for this file
+
+        PRIMARY KEY (session_id, pod_serial)
+      );
+    `);
+
     /* ================= RAW SENSOR DATA ================= */
 
     db.execute(`

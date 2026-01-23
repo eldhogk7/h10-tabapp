@@ -1,6 +1,9 @@
 import Papa from "papaparse";
 import { db } from "../db/sqlite";
-
+import {
+  getAssignedPlayersForSession,
+  getSessionPodOverrides,
+} from "./sessionPlayer.service";
 /* ================= HELPERS ================= */
 
 function msToTime(ms: number): string {
@@ -20,7 +23,6 @@ export async function importCsvToSQLite(
     location?: string;
     field?: string;
     notes?: string;
-    assignedPlayers?: { player_id: string }[];
   }
 ) {
   /* ================= NORMALIZE CSV ================= */
@@ -55,6 +57,24 @@ export async function importCsvToSQLite(
   const absEnd = sessionStartMs + trimEndMs;
 
   console.log("🟢 TRIM WINDOW", msToTime(absStart), "→", msToTime(absEnd));
+
+  /* ================= LOAD SESSION METADATA ================= */
+
+  const sessionPlayers = getAssignedPlayersForSession(sessionId);
+  const podOverrides = getSessionPodOverrides(sessionId);
+
+  // ✅ Only players marked as PLAYING
+  const activePlayerIds = new Set(
+    sessionPlayers.filter(p => p.assigned).map(p => p.player_id)
+  );
+
+  // Default pod → player mapping from players table
+  const podToPlayer = new Map<string, string>();
+  sessionPlayers.forEach(p => {
+    if (p.pod_serial) {
+      podToPlayer.set(p.pod_serial, p.player_id);
+    }
+  });
 
   /* ================= TRANSACTION ================= */
 
@@ -106,21 +126,29 @@ export async function importCsvToSQLite(
     /* ===== INSERT RAW DATA ===== */
 
     let inserted = 0;
-
     for (const row of rows) {
       const timestamp = Number(row.timestamp_ms);
-      const playerIdFromPod = Number(row.player_id);
+      const podSerial = row.pod_serial; // 🔑 REQUIRED IN CSV
 
-      if (!playerIdFromPod || isNaN(timestamp)) continue;
+      if (!podSerial || isNaN(timestamp)) continue;
       if (timestamp < absStart || timestamp > absEnd) continue;
 
-      // ❌ SKIP UNASSIGNED PLAYERS (FILE-SPECIFIC)
-      if (
-        assignedPlayerIds.size > 0 &&
-        !assignedPlayerIds.has(playerIdFromPod)
-      ) {
-        continue;
-      }
+      // 1️⃣ Session override
+      const overridePlayerId = podOverrides[podSerial];
+
+      // pod explicitly disabled for this file
+      if (overridePlayerId === null) continue;
+
+      // 2️⃣ Default pod owner
+      const defaultPlayerId = podToPlayer.get(podSerial);
+
+      const effectivePlayerId =
+        overridePlayerId ?? defaultPlayerId;
+
+      if (!effectivePlayerId) continue;
+
+      // 3️⃣ Only players marked as PLAYING
+      if (!activePlayerIds.has(effectivePlayerId)) continue;
 
       await db.execute(
         `
@@ -137,7 +165,7 @@ export async function importCsvToSQLite(
         `,
         [
           sessionId,
-          Number(row.player_id),
+          effectivePlayerId,
           timestamp,
           Number(row.acc_x),
           Number(row.acc_y),

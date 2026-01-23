@@ -247,7 +247,8 @@ export default function ImportFromESP32({
                 </Text>
 
                 <Text style={styles.playerMeta}>
-                  {p.position || "—"} • Pod: {p.pod_serial || "Unassigned"}
+                  {p.position || "—"} • Pod: {p.effective_pod_serial || "Unassigned"}
+                  {p.swapped && " (swapped)"}
                 </Text>
 
                 <Text
