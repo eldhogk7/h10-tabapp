@@ -191,7 +191,8 @@ export default function TrimSessionScreen({
     );
 
     // 🔍 Verify update actually hit a row
-    if (result.rowsAffected === 0) {
+    const rowsAffected = result?.rowsAffected ?? 0;
+    if (rowsAffected === 0) {
       console.error("❌ TRIM SAVE FAILED — session does not exist", sessionId);
       return;
     }
@@ -202,12 +203,20 @@ export default function TrimSessionScreen({
       [sessionId]
     );
 
+    const sessionData = (res && res.rows && res.rows._array) ? res.rows._array[0] : (Array.isArray(res) ? res[0] : null);
+
     console.log(
       "✅ TRIM SAVE (sqlite confirmed)",
-      res.rows._array[0]
+      sessionData
     );
 
-    goNext({ file, sessionId, eventDraft });
+    goNext({
+      file,
+      sessionId,
+      eventDraft,
+      trimStartTs: Math.round(trimStartTs),
+      trimEndTs: Math.round(trimEndTs),
+    });
   };
 
   /* ================= UI ================= */
